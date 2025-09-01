@@ -80,11 +80,16 @@ export interface Config {
     'form-submissions': FormSubmission;
     search: Search;
     'payload-jobs': PayloadJob;
+    'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    'payload-folders': {
+      documentsAndFolders: 'payload-folders' | 'categories';
+    };
+  };
   collectionsSelect: {
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
@@ -99,6 +104,7 @@ export interface Config {
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
+    'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -156,6 +162,7 @@ export interface Page {
   title: string;
   hero: {
     type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
+    mediaType?: ('slider' | 'single' | 'video') | null;
     richText?: {
       root: {
         type: string;
@@ -171,6 +178,40 @@ export interface Page {
       };
       [k: string]: unknown;
     } | null;
+    slides?:
+      | {
+          image: number | Media;
+          mobileImage?: (number | null) | Media;
+          title?: string | null;
+          subtitle?: string | null;
+          links?:
+            | {
+                link: {
+                  type?: ('reference' | 'custom') | null;
+                  newTab?: boolean | null;
+                  reference?:
+                    | ({
+                        relationTo: 'pages';
+                        value: number | Page;
+                      } | null)
+                    | ({
+                        relationTo: 'posts';
+                        value: number | Post;
+                      } | null);
+                  url?: string | null;
+                  label: string;
+                  /**
+                   * Choose how the link should be rendered.
+                   */
+                  appearance?: ('default' | 'outline') | null;
+                };
+                id?: string | null;
+              }[]
+            | null;
+          textPosition?: ('left' | 'center' | 'right') | null;
+          id?: string | null;
+        }[]
+      | null;
     links?:
       | {
           link: {
@@ -196,6 +237,8 @@ export interface Page {
         }[]
       | null;
     media?: (number | null) | Media;
+    autoplay?: boolean | null;
+    autoplayDelay?: number | null;
   };
   layout: (
     | CallToActionBlock
@@ -216,53 +259,6 @@ export interface Page {
     description?: string | null;
   };
   publishedAt?: string | null;
-  slug?: string | null;
-  slugLock?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "posts".
- */
-export interface Post {
-  id: number;
-  title: string;
-  heroImage?: (number | null) | Media;
-  content: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  relatedPosts?: (number | Post)[] | null;
-  categories?: (number | Category)[] | null;
-  meta?: {
-    title?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (number | null) | Media;
-    description?: string | null;
-  };
-  publishedAt?: string | null;
-  authors?: (number | User)[] | null;
-  populatedAuthors?:
-    | {
-        id?: string | null;
-        name?: string | null;
-      }[]
-    | null;
   slug?: string | null;
   slugLock?: boolean | null;
   updatedAt: string;
@@ -363,6 +359,53 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  title: string;
+  heroImage?: (number | null) | Media;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  relatedPosts?: (number | Post)[] | null;
+  categories?: (number | Category)[] | null;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  publishedAt?: string | null;
+  authors?: (number | User)[] | null;
+  populatedAuthors?:
+    | {
+        id?: string | null;
+        name?: string | null;
+      }[]
+    | null;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories".
  */
 export interface Category {
@@ -379,6 +422,33 @@ export interface Category {
         id?: string | null;
       }[]
     | null;
+  folder?: (number | null) | FolderInterface;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: number;
+  name: string;
+  folder?: (number | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
+      | {
+          relationTo?: 'payload-folders';
+          value: number | FolderInterface;
+        }
+      | {
+          relationTo?: 'categories';
+          value: number | Category;
+        }
+    )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  folderType?: 'categories'[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -821,13 +891,13 @@ export interface ProductShowcaseBlock {
 export interface Product {
   id: number;
   /**
-   * The name of your product as it will appear to customers
+   * The name of your product as it will appear to customers (max 100 characters)
    */
   title: string;
   slug?: string | null;
   slugLock?: boolean | null;
   /**
-   * Detailed description of the product
+   * Detailed description of the product. Include key features, benefits, and specifications.
    */
   description?: {
     root: {
@@ -845,44 +915,38 @@ export interface Product {
     [k: string]: unknown;
   } | null;
   /**
-   * Current selling price in Kenyan Shillings
-   */
-  price: number;
-  /**
-   * Original price before discount. Leave empty if no discount.
-   */
-  originalPrice?: number | null;
-  currency?: ('KES' | 'USD' | 'EUR') | null;
-  /**
-   * Upload multiple product images. First image will be the main image.
+   * Upload high-quality product images (min 800x800px). First image will be used as the main product image.
    */
   images: {
     /**
-     * Product image
+     * Upload a high-resolution product image
      */
     image: number | Media;
     /**
-     * Alternative text for accessibility and SEO
+     * Describe this image for accessibility and SEO (e.g., "Red cotton t-shirt front view")
      */
-    alt?: string | null;
+    alt: string;
     /**
-     * Mark as the main product image
+     * The primary image will be featured as the main product image
      */
     isPrimary?: boolean | null;
     id?: string | null;
   }[];
   /**
-   * Colors available for this product
+   * Add all available color variations for this product
    */
   colors?:
     | {
+        /**
+         * e.g., Navy Blue, Black, White
+         */
         colorName: string;
         /**
-         * Hex color code (e.g., #FF0000 for red)
+         * Hex color code (e.g., #1A365D for navy blue)
          */
         colorCode?: string | null;
         /**
-         * Optional: Upload an image showing this color variant
+         * Image showing this color variant
          */
         colorImage?: (number | null) | Media;
         id?: string | null;
@@ -932,68 +996,68 @@ export interface Product {
       }[]
     | null;
   /**
-   * Select the main category for this product
+   * Unique product identifier
    */
-  category: number | Category;
+  sku: string;
   /**
-   * Additional categories this product belongs to
+   * Product barcode number
    */
-  subcategories?: (number | Category)[] | null;
+  barcode?: string | null;
   /**
-   * Tags for filtering and search (e.g., summer, casual, trending)
+   * Your cost for this product
    */
-  tags?:
-    | {
-        tag: string;
-        id?: string | null;
-      }[]
-    | null;
+  costPrice: number;
   /**
-   * Whether the product is currently available
+   * Price customers will pay
    */
-  inStock?: boolean | null;
+  price: number;
   /**
-   * Total quantity available across all variants
+   * Original price before discount (optional)
    */
-  inventory?: number | null;
+  originalPrice?: number | null;
   /**
-   * Alert when inventory falls below this number
+   * VAT/tax rate applied to this product
+   */
+  taxRate?: number | null;
+  /**
+   * Available items in stock
+   */
+  inStock: number;
+  /**
+   * Get notified when stock reaches this level
    */
   lowStockThreshold?: number | null;
   /**
-   * Show this product in featured sections
+   * Enable stock tracking for this product
    */
-  featured?: boolean | null;
+  trackInventory?: boolean | null;
   /**
-   * Mark as new arrival
+   * Select the currency for this product
    */
-  isNewArrival?: boolean | null;
+  currency?: ('KES' | 'USD' | 'EUR') | null;
   /**
-   * Mark as bestseller
+   * Product weight for shipping
    */
-  isBestseller?: boolean | null;
-  onSale?: boolean | null;
-  salePrice?: number | null;
-  status?: ('active' | 'draft' | 'archived' | 'out-of-stock') | null;
+  weight?: number | null;
   /**
-   * Average customer rating (0-5 stars)
+   * Product dimensions (L × W × H)
    */
-  rating?: number | null;
+  dimensions?: {
+    length?: number | null;
+    width?: number | null;
+    height?: number | null;
+  };
   /**
-   * Total number of customer reviews
+   * Select a shipping class for this product
    */
-  reviewCount?: number | null;
+  shippingClass?: ('standard' | 'express' | 'oversized' | 'fragile') | null;
   /**
-   * Technical specifications and details
+   * Special instructions for shipping this product
    */
-  specifications?:
-    | {
-        name: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
-  relatedProducts?: (number | Product)[] | null;
+  shippingNotes?: string | null;
+  /**
+   * Optimize how your product appears in search engines
+   */
   meta?: {
     title?: string | null;
     /**
@@ -1303,6 +1367,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-jobs';
         value: number | PayloadJob;
+      } | null)
+    | ({
+        relationTo: 'payload-folders';
+        value: number | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1356,7 +1424,33 @@ export interface PagesSelect<T extends boolean = true> {
     | T
     | {
         type?: T;
+        mediaType?: T;
         richText?: T;
+        slides?:
+          | T
+          | {
+              image?: T;
+              mobileImage?: T;
+              title?: T;
+              subtitle?: T;
+              links?:
+                | T
+                | {
+                    link?:
+                      | T
+                      | {
+                          type?: T;
+                          newTab?: T;
+                          reference?: T;
+                          url?: T;
+                          label?: T;
+                          appearance?: T;
+                        };
+                    id?: T;
+                  };
+              textPosition?: T;
+              id?: T;
+            };
         links?:
           | T
           | {
@@ -1373,6 +1467,8 @@ export interface PagesSelect<T extends boolean = true> {
               id?: T;
             };
         media?: T;
+        autoplay?: T;
+        autoplayDelay?: T;
       };
   layout?:
     | T
@@ -1682,6 +1778,7 @@ export interface CategoriesSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
+  folder?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1793,9 +1890,6 @@ export interface ProductsSelect<T extends boolean = true> {
   slug?: T;
   slugLock?: T;
   description?: T;
-  price?: T;
-  originalPrice?: T;
-  currency?: T;
   images?:
     | T
     | {
@@ -1821,33 +1915,26 @@ export interface ProductsSelect<T extends boolean = true> {
         stockQuantity?: T;
         id?: T;
       };
-  category?: T;
-  subcategories?: T;
-  tags?:
-    | T
-    | {
-        tag?: T;
-        id?: T;
-      };
+  sku?: T;
+  barcode?: T;
+  costPrice?: T;
+  price?: T;
+  originalPrice?: T;
+  taxRate?: T;
   inStock?: T;
-  inventory?: T;
   lowStockThreshold?: T;
-  featured?: T;
-  isNewArrival?: T;
-  isBestseller?: T;
-  onSale?: T;
-  salePrice?: T;
-  status?: T;
-  rating?: T;
-  reviewCount?: T;
-  specifications?:
+  trackInventory?: T;
+  currency?: T;
+  weight?: T;
+  dimensions?:
     | T
     | {
-        name?: T;
-        value?: T;
-        id?: T;
+        length?: T;
+        width?: T;
+        height?: T;
       };
-  relatedProducts?: T;
+  shippingClass?: T;
+  shippingNotes?: T;
   meta?:
     | T
     | {
@@ -2089,6 +2176,18 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders_select".
+ */
+export interface PayloadFoldersSelect<T extends boolean = true> {
+  name?: T;
+  folder?: T;
+  documentsAndFolders?: T;
+  folderType?: T;
   updatedAt?: T;
   createdAt?: T;
 }

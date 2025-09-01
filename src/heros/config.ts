@@ -39,33 +39,116 @@ export const hero: Field = {
       required: true,
     },
     {
+      name: 'mediaType',
+      type: 'select',
+      options: [
+        { label: 'Image Slider', value: 'slider' },
+        { label: 'Single Image', value: 'single' },
+        { label: 'Video Background', value: 'video' },
+      ],
+      defaultValue: 'single',
+    },
+    {
       name: 'richText',
       type: 'richText',
+      admin: {
+        condition: (_, { type, mediaType } = {}) =>
+          ['highImpact', 'mediumImpact'].includes(type) && mediaType !== 'slider',
+      },
       editor: lexicalEditor({
         features: ({ rootFeatures }) => {
-          return [
-            ...rootFeatures,
-            HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
-            FixedToolbarFeature(),
-            InlineToolbarFeature(),
-          ]
+          return [...rootFeatures, HeadingFeature(), FixedToolbarFeature(), InlineToolbarFeature()]
         },
       }),
       label: false,
     },
+    {
+      name: 'slides',
+      type: 'array',
+      label: 'Slides',
+      admin: {
+        condition: (_, { type, mediaType } = {}) => type === 'highImpact' && mediaType === 'slider',
+      },
+      minRows: 1,
+      maxRows: 10,
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+        },
+        {
+          name: 'mobileImage',
+          type: 'upload',
+          relationTo: 'media',
+          label: 'Mobile Image (Optional)',
+        },
+        {
+          name: 'title',
+          type: 'text',
+          label: 'Title',
+        },
+        {
+          name: 'subtitle',
+          type: 'text',
+          label: 'Subtitle',
+        },
+        linkGroup({
+          overrides: {
+            maxRows: 2,
+          },
+        }),
+        {
+          name: 'textPosition',
+          type: 'select',
+          label: 'Text Position',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Center', value: 'center' },
+            { label: 'Right', value: 'right' },
+          ],
+          defaultValue: 'center',
+        },
+      ],
+    },
     linkGroup({
       overrides: {
         maxRows: 2,
+        admin: {
+          condition: (_, { type, mediaType } = {}) =>
+            ['highImpact', 'mediumImpact'].includes(type) && mediaType !== 'slider',
+        },
       },
     }),
     {
       name: 'media',
       type: 'upload',
       admin: {
-        condition: (_, { type } = {}) => ['highImpact', 'mediumImpact'].includes(type),
+        condition: (_, { type, mediaType } = {}) =>
+          ['highImpact', 'mediumImpact'].includes(type) && mediaType !== 'slider',
       },
       relationTo: 'media',
       required: true,
+    },
+    {
+      name: 'autoplay',
+      type: 'checkbox',
+      label: 'Enable Autoplay',
+      admin: {
+        condition: (_, { type, mediaType } = {}) => type === 'highImpact' && mediaType === 'slider',
+      },
+      defaultValue: true,
+    },
+    {
+      name: 'autoplayDelay',
+      type: 'number',
+      label: 'Autoplay Delay (seconds)',
+      defaultValue: 5,
+      admin: {
+        condition: (_, { type, mediaType, autoplay } = {}) =>
+          type === 'highImpact' && mediaType === 'slider' && autoplay,
+      },
     },
   ],
   label: false,
