@@ -197,7 +197,16 @@ export interface Page {
       | null;
     media?: (number | null) | Media;
   };
-  layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
+  layout: (
+    | CallToActionBlock
+    | ContentBlock
+    | MediaBlock
+    | ArchiveBlock
+    | FormBlock
+    | DataTableBlock
+    | CategoryShowcaseBlock
+    | ProductShowcaseBlock
+  )[];
   meta?: {
     title?: string | null;
     /**
@@ -745,65 +754,63 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "orders".
+ * via the `definition` "DataTableBlock".
  */
-export interface Order {
-  id: number;
-  orderNumber: string;
-  customer: number | User;
-  items: {
-    product: number | Product;
-    quantity: number;
-    price: number;
-    selectedVariants?: {
-      size?: string | null;
-      color?: string | null;
-    };
-    id?: string | null;
-  }[];
-  subtotal: number;
-  shipping: {
-    method: string;
-    cost: number;
-    address: {
-      firstName: string;
-      lastName: string;
-      address: string;
-      apartment?: string | null;
-      city: string;
-      state: string;
-      zipCode: string;
-      country: string;
-    };
-  };
-  tax: number;
-  total: number;
-  payment: {
-    method: 'card' | 'paypal' | 'apple_pay' | 'google_pay' | 'mpesa' | 'cash';
-    status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
-    transactionId?: string | null;
-    amountPaid?: number | null;
-    remainingBalance?: number | null;
-  };
-  paymentInstallments?:
+export interface DataTableBlock {
+  targetCollection: 'customers' | 'posts' | 'pages' | 'categories';
+  filters?:
     | {
-        amount: number;
-        method: 'cash' | 'mpesa' | 'card';
-        transactionId?: string | null;
-        paidAt: string;
-        notes?: string | null;
+        column: string;
+        title: string;
+        options?:
+          | {
+              label: string;
+              value: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
-  tracking?: {
-    carrier?: string | null;
-    trackingNumber?: string | null;
-    trackingUrl?: string | null;
-  };
-  notes?: string | null;
-  updatedAt: string;
-  createdAt: string;
+  defaultPageSize?: number | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'dataTable';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CategoryShowcaseBlock".
+ */
+export interface CategoryShowcaseBlock {
+  title: string;
+  subtitle?: string | null;
+  categories?:
+    | {
+        category: number | Category;
+        customImage?: (number | null) | Media;
+        customTitle?: string | null;
+        featured?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'categoryShowcase';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductShowcaseBlock".
+ */
+export interface ProductShowcaseBlock {
+  title: string;
+  subtitle?: string | null;
+  layout?: ('grid' | 'featured' | 'carousel') | null;
+  products: (number | Product)[];
+  showPricing?: boolean | null;
+  showDescription?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'productShowcase';
 }
 /**
  * Manage all products in your store
@@ -998,6 +1005,68 @@ export interface Product {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  orderNumber: string;
+  customer: number | User;
+  items: {
+    product: number | Product;
+    quantity: number;
+    price: number;
+    selectedVariants?: {
+      size?: string | null;
+      color?: string | null;
+    };
+    id?: string | null;
+  }[];
+  subtotal: number;
+  shipping: {
+    method: string;
+    cost: number;
+    address: {
+      firstName: string;
+      lastName: string;
+      address: string;
+      apartment?: string | null;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    };
+  };
+  tax: number;
+  total: number;
+  payment: {
+    method: 'card' | 'paypal' | 'apple_pay' | 'google_pay' | 'mpesa' | 'cash';
+    status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
+    transactionId?: string | null;
+    amountPaid?: number | null;
+    remainingBalance?: number | null;
+  };
+  paymentInstallments?:
+    | {
+        amount: number;
+        method: 'cash' | 'mpesa' | 'card';
+        transactionId?: string | null;
+        paidAt: string;
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  tracking?: {
+    carrier?: string | null;
+    trackingNumber?: string | null;
+    trackingUrl?: string | null;
+  };
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1313,6 +1382,9 @@ export interface PagesSelect<T extends boolean = true> {
         mediaBlock?: T | MediaBlockSelect<T>;
         archive?: T | ArchiveBlockSelect<T>;
         formBlock?: T | FormBlockSelect<T>;
+        dataTable?: T | DataTableBlockSelect<T>;
+        categoryShowcase?: T | CategoryShowcaseBlockSelect<T>;
+        productShowcase?: T | ProductShowcaseBlockSelect<T>;
       };
   meta?:
     | T
@@ -1409,6 +1481,63 @@ export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
   enableIntro?: T;
   introContent?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DataTableBlock_select".
+ */
+export interface DataTableBlockSelect<T extends boolean = true> {
+  targetCollection?: T;
+  filters?:
+    | T
+    | {
+        column?: T;
+        title?: T;
+        options?:
+          | T
+          | {
+              label?: T;
+              value?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  defaultPageSize?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CategoryShowcaseBlock_select".
+ */
+export interface CategoryShowcaseBlockSelect<T extends boolean = true> {
+  title?: T;
+  subtitle?: T;
+  categories?:
+    | T
+    | {
+        category?: T;
+        customImage?: T;
+        customTitle?: T;
+        featured?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductShowcaseBlock_select".
+ */
+export interface ProductShowcaseBlockSelect<T extends boolean = true> {
+  title?: T;
+  subtitle?: T;
+  layout?: T;
+  products?: T;
+  showPricing?: T;
+  showDescription?: T;
   id?: T;
   blockName?: T;
 }
