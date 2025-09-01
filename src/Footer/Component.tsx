@@ -76,7 +76,7 @@ const TwitterIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export async function Footer() {
   const footerData = (await getCachedGlobal('footer', 1)()) as FooterData
   const {
-    copyright = `© ${new Date().getFullYear()} Your Brand. All rights reserved.`,
+    copyright = `© ${new Date().getFullYear()} Luxe Collections. All rights reserved.`,
     navItems = [],
   } = footerData || {}
 
