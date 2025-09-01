@@ -22,5 +22,14 @@ export const Categories: CollectionConfig = {
       required: true,
     },
     ...slugField(),
+    {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: 'categories',
+      hasMany: false,
+      admin: {
+        position: 'sidebar',
+      },
+    },
   ],
 }

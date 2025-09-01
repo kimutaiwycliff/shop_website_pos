@@ -72,6 +72,9 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
+    orders: Order;
+    products: Product;
+    brands: Brand;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -88,6 +91,9 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    brands: BrandsSelect<false> | BrandsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -98,7 +104,7 @@ export interface Config {
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   globals: {
     header: Header;
@@ -146,7 +152,7 @@ export interface UserAuthOperations {
  * via the `definition` "pages".
  */
 export interface Page {
-  id: string;
+  id: number;
   title: string;
   hero: {
     type: 'none' | 'highImpact' | 'mediumImpact' | 'lowImpact';
@@ -173,11 +179,11 @@ export interface Page {
             reference?:
               | ({
                   relationTo: 'pages';
-                  value: string | Page;
+                  value: number | Page;
                 } | null)
               | ({
                   relationTo: 'posts';
-                  value: string | Post;
+                  value: number | Post;
                 } | null);
             url?: string | null;
             label: string;
@@ -189,7 +195,7 @@ export interface Page {
           id?: string | null;
         }[]
       | null;
-    media?: (string | null) | Media;
+    media?: (number | null) | Media;
   };
   layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
   meta?: {
@@ -197,7 +203,7 @@ export interface Page {
     /**
      * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
      */
-    image?: (string | null) | Media;
+    image?: (number | null) | Media;
     description?: string | null;
   };
   publishedAt?: string | null;
@@ -212,9 +218,9 @@ export interface Page {
  * via the `definition` "posts".
  */
 export interface Post {
-  id: string;
+  id: number;
   title: string;
-  heroImage?: (string | null) | Media;
+  heroImage?: (number | null) | Media;
   content: {
     root: {
       type: string;
@@ -230,18 +236,18 @@ export interface Post {
     };
     [k: string]: unknown;
   };
-  relatedPosts?: (string | Post)[] | null;
-  categories?: (string | Category)[] | null;
+  relatedPosts?: (number | Post)[] | null;
+  categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
     /**
      * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
      */
-    image?: (string | null) | Media;
+    image?: (number | null) | Media;
     description?: string | null;
   };
   publishedAt?: string | null;
-  authors?: (string | User)[] | null;
+  authors?: (number | User)[] | null;
   populatedAuthors?:
     | {
         id?: string | null;
@@ -259,7 +265,7 @@ export interface Post {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt?: string | null;
   caption?: {
     root: {
@@ -351,14 +357,14 @@ export interface Media {
  * via the `definition` "categories".
  */
 export interface Category {
-  id: string;
+  id: number;
   title: string;
   slug?: string | null;
   slugLock?: boolean | null;
-  parent?: (string | null) | Category;
+  parent?: (number | null) | Category;
   breadcrumbs?:
     | {
-        doc?: (string | null) | Category;
+        doc?: (number | null) | Category;
         url?: string | null;
         label?: string | null;
         id?: string | null;
@@ -372,8 +378,11 @@ export interface Category {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  active?: boolean | null;
   name?: string | null;
+  avatar?: (number | null) | Media;
+  roles?: ('admin' | 'editor' | 'user')[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -420,11 +429,11 @@ export interface CallToActionBlock {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
                 relationTo: 'posts';
-                value: string | Post;
+                value: number | Post;
               } | null);
           url?: string | null;
           label: string;
@@ -470,11 +479,11 @@ export interface ContentBlock {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
                 relationTo: 'posts';
-                value: string | Post;
+                value: number | Post;
               } | null);
           url?: string | null;
           label: string;
@@ -495,7 +504,7 @@ export interface ContentBlock {
  * via the `definition` "MediaBlock".
  */
 export interface MediaBlock {
-  media: string | Media;
+  media: number | Media;
   id?: string | null;
   blockName?: string | null;
   blockType: 'mediaBlock';
@@ -522,12 +531,12 @@ export interface ArchiveBlock {
   } | null;
   populateBy?: ('collection' | 'selection') | null;
   relationTo?: 'posts' | null;
-  categories?: (string | Category)[] | null;
+  categories?: (number | Category)[] | null;
   limit?: number | null;
   selectedDocs?:
     | {
         relationTo: 'posts';
-        value: string | Post;
+        value: number | Post;
       }[]
     | null;
   id?: string | null;
@@ -539,7 +548,7 @@ export interface ArchiveBlock {
  * via the `definition` "FormBlock".
  */
 export interface FormBlock {
-  form: string | Form;
+  form: number | Form;
   enableIntro?: boolean | null;
   introContent?: {
     root: {
@@ -565,7 +574,7 @@ export interface FormBlock {
  * via the `definition` "forms".
  */
 export interface Form {
-  id: string;
+  id: number;
   title: string;
   fields?:
     | (
@@ -736,10 +745,277 @@ export interface Form {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  orderNumber: string;
+  customer: number | User;
+  items: {
+    product: number | Product;
+    quantity: number;
+    price: number;
+    selectedVariants?: {
+      size?: string | null;
+      color?: string | null;
+    };
+    id?: string | null;
+  }[];
+  subtotal: number;
+  shipping: {
+    method: string;
+    cost: number;
+    address: {
+      firstName: string;
+      lastName: string;
+      address: string;
+      apartment?: string | null;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    };
+  };
+  tax: number;
+  total: number;
+  payment: {
+    method: 'card' | 'paypal' | 'apple_pay' | 'google_pay' | 'mpesa' | 'cash';
+    status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partial';
+    transactionId?: string | null;
+    amountPaid?: number | null;
+    remainingBalance?: number | null;
+  };
+  paymentInstallments?:
+    | {
+        amount: number;
+        method: 'cash' | 'mpesa' | 'card';
+        transactionId?: string | null;
+        paidAt: string;
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  tracking?: {
+    carrier?: string | null;
+    trackingNumber?: string | null;
+    trackingUrl?: string | null;
+  };
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Manage all products in your store
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  /**
+   * The name of your product as it will appear to customers
+   */
+  title: string;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  /**
+   * Detailed description of the product
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: string;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Current selling price in Kenyan Shillings
+   */
+  price: number;
+  /**
+   * Original price before discount. Leave empty if no discount.
+   */
+  originalPrice?: number | null;
+  currency?: ('KES' | 'USD' | 'EUR') | null;
+  /**
+   * Upload multiple product images. First image will be the main image.
+   */
+  images: {
+    /**
+     * Product image
+     */
+    image: number | Media;
+    /**
+     * Alternative text for accessibility and SEO
+     */
+    alt?: string | null;
+    /**
+     * Mark as the main product image
+     */
+    isPrimary?: boolean | null;
+    id?: string | null;
+  }[];
+  /**
+   * Colors available for this product
+   */
+  colors?:
+    | {
+        colorName: string;
+        /**
+         * Hex color code (e.g., #FF0000 for red)
+         */
+        colorCode?: string | null;
+        /**
+         * Optional: Upload an image showing this color variant
+         */
+        colorImage?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Sizes available for this product
+   */
+  sizes?:
+    | {
+        sizeName: string;
+        sizeCode?:
+          | (
+              | 'XS'
+              | 'S'
+              | 'M'
+              | 'L'
+              | 'XL'
+              | 'XXL'
+              | 'XXXL'
+              | '28'
+              | '30'
+              | '32'
+              | '34'
+              | '36'
+              | '38'
+              | '40'
+              | '42'
+              | '44'
+              | '46'
+              | '2T'
+              | '3T'
+              | '4T'
+              | '5T'
+              | '6'
+              | '7'
+              | '8'
+              | '10'
+              | '12'
+              | '14'
+              | '16'
+            )
+          | null;
+        inStock?: boolean | null;
+        stockQuantity?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Select the main category for this product
+   */
+  category: number | Category;
+  /**
+   * Additional categories this product belongs to
+   */
+  subcategories?: (number | Category)[] | null;
+  /**
+   * Tags for filtering and search (e.g., summer, casual, trending)
+   */
+  tags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Whether the product is currently available
+   */
+  inStock?: boolean | null;
+  /**
+   * Total quantity available across all variants
+   */
+  inventory?: number | null;
+  /**
+   * Alert when inventory falls below this number
+   */
+  lowStockThreshold?: number | null;
+  /**
+   * Show this product in featured sections
+   */
+  featured?: boolean | null;
+  /**
+   * Mark as new arrival
+   */
+  isNewArrival?: boolean | null;
+  /**
+   * Mark as bestseller
+   */
+  isBestseller?: boolean | null;
+  onSale?: boolean | null;
+  salePrice?: number | null;
+  status?: ('active' | 'draft' | 'archived' | 'out-of-stock') | null;
+  /**
+   * Average customer rating (0-5 stars)
+   */
+  rating?: number | null;
+  /**
+   * Total number of customer reviews
+   */
+  reviewCount?: number | null;
+  /**
+   * Technical specifications and details
+   */
+  specifications?:
+    | {
+        name: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  relatedProducts?: (number | Product)[] | null;
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands".
+ */
+export interface Brand {
+  id: number;
+  name: string;
+  logo?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
-  id: string;
+  id: number;
   /**
    * You will need to rebuild the website when changing this field.
    */
@@ -749,11 +1025,11 @@ export interface Redirect {
     reference?:
       | ({
           relationTo: 'pages';
-          value: string | Page;
+          value: number | Page;
         } | null)
       | ({
           relationTo: 'posts';
-          value: string | Post;
+          value: number | Post;
         } | null);
     url?: string | null;
   };
@@ -765,8 +1041,8 @@ export interface Redirect {
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
-  id: string;
-  form: string | Form;
+  id: number;
+  form: number | Form;
   submissionData?:
     | {
         field: string;
@@ -784,18 +1060,18 @@ export interface FormSubmission {
  * via the `definition` "search".
  */
 export interface Search {
-  id: string;
+  id: number;
   title?: string | null;
   priority?: number | null;
   doc: {
     relationTo: 'posts';
-    value: string | Post;
+    value: number | Post;
   };
   slug?: string | null;
   meta?: {
     title?: string | null;
     description?: string | null;
-    image?: (string | null) | Media;
+    image?: (number | null) | Media;
   };
   categories?:
     | {
@@ -813,7 +1089,7 @@ export interface Search {
  * via the `definition` "payload-jobs".
  */
 export interface PayloadJob {
-  id: string;
+  id: number;
   /**
    * Input data provided to the job
    */
@@ -905,52 +1181,64 @@ export interface PayloadJob {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'pages';
-        value: string | Page;
+        value: number | Page;
       } | null)
     | ({
         relationTo: 'posts';
-        value: string | Post;
+        value: number | Post;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
       } | null)
     | ({
         relationTo: 'categories';
-        value: string | Category;
+        value: number | Category;
       } | null)
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'brands';
+        value: number | Brand;
       } | null)
     | ({
         relationTo: 'redirects';
-        value: string | Redirect;
+        value: number | Redirect;
       } | null)
     | ({
         relationTo: 'forms';
-        value: string | Form;
+        value: number | Form;
       } | null)
     | ({
         relationTo: 'form-submissions';
-        value: string | FormSubmission;
+        value: number | FormSubmission;
       } | null)
     | ({
         relationTo: 'search';
-        value: string | Search;
+        value: number | Search;
       } | null)
     | ({
         relationTo: 'payload-jobs';
-        value: string | PayloadJob;
+        value: number | PayloadJob;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -960,10 +1248,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -983,7 +1271,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -1273,7 +1561,10 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  active?: T;
   name?: T;
+  avatar?: T;
+  roles?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1290,6 +1581,164 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  orderNumber?: T;
+  customer?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        quantity?: T;
+        price?: T;
+        selectedVariants?:
+          | T
+          | {
+              size?: T;
+              color?: T;
+            };
+        id?: T;
+      };
+  subtotal?: T;
+  shipping?:
+    | T
+    | {
+        method?: T;
+        cost?: T;
+        address?:
+          | T
+          | {
+              firstName?: T;
+              lastName?: T;
+              address?: T;
+              apartment?: T;
+              city?: T;
+              state?: T;
+              zipCode?: T;
+              country?: T;
+            };
+      };
+  tax?: T;
+  total?: T;
+  payment?:
+    | T
+    | {
+        method?: T;
+        status?: T;
+        transactionId?: T;
+        amountPaid?: T;
+        remainingBalance?: T;
+      };
+  paymentInstallments?:
+    | T
+    | {
+        amount?: T;
+        method?: T;
+        transactionId?: T;
+        paidAt?: T;
+        notes?: T;
+        id?: T;
+      };
+  status?: T;
+  tracking?:
+    | T
+    | {
+        carrier?: T;
+        trackingNumber?: T;
+        trackingUrl?: T;
+      };
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  slugLock?: T;
+  description?: T;
+  price?: T;
+  originalPrice?: T;
+  currency?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        alt?: T;
+        isPrimary?: T;
+        id?: T;
+      };
+  colors?:
+    | T
+    | {
+        colorName?: T;
+        colorCode?: T;
+        colorImage?: T;
+        id?: T;
+      };
+  sizes?:
+    | T
+    | {
+        sizeName?: T;
+        sizeCode?: T;
+        inStock?: T;
+        stockQuantity?: T;
+        id?: T;
+      };
+  category?: T;
+  subcategories?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  inStock?: T;
+  inventory?: T;
+  lowStockThreshold?: T;
+  featured?: T;
+  isNewArrival?: T;
+  isBestseller?: T;
+  onSale?: T;
+  salePrice?: T;
+  status?: T;
+  rating?: T;
+  reviewCount?: T;
+  specifications?:
+    | T
+    | {
+        name?: T;
+        value?: T;
+        id?: T;
+      };
+  relatedProducts?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands_select".
+ */
+export interface BrandsSelect<T extends boolean = true> {
+  name?: T;
+  logo?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1551,7 +2000,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  * via the `definition` "header".
  */
 export interface Header {
-  id: string;
+  id: number;
   navItems?:
     | {
         link: {
@@ -1560,15 +2009,35 @@ export interface Header {
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
                 relationTo: 'posts';
-                value: string | Post;
+                value: number | Post;
               } | null);
           url?: string | null;
           label: string;
         };
+        subLinks?:
+          | {
+              link: {
+                type?: ('reference' | 'custom') | null;
+                newTab?: boolean | null;
+                reference?:
+                  | ({
+                      relationTo: 'pages';
+                      value: number | Page;
+                    } | null)
+                  | ({
+                      relationTo: 'posts';
+                      value: number | Post;
+                    } | null);
+                url?: string | null;
+                label: string;
+              };
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -1580,20 +2049,22 @@ export interface Header {
  * via the `definition` "footer".
  */
 export interface Footer {
-  id: string;
+  id: number;
+  copyright: string;
   navItems?:
     | {
+        title: string;
         link: {
           type?: ('reference' | 'custom') | null;
           newTab?: boolean | null;
           reference?:
             | ({
                 relationTo: 'pages';
-                value: string | Page;
+                value: number | Page;
               } | null)
             | ({
                 relationTo: 'posts';
-                value: string | Post;
+                value: number | Post;
               } | null);
           url?: string | null;
           label: string;
@@ -1621,6 +2092,20 @@ export interface HeaderSelect<T extends boolean = true> {
               url?: T;
               label?: T;
             };
+        subLinks?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    type?: T;
+                    newTab?: T;
+                    reference?: T;
+                    url?: T;
+                    label?: T;
+                  };
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;
@@ -1632,9 +2117,11 @@ export interface HeaderSelect<T extends boolean = true> {
  * via the `definition` "footer_select".
  */
 export interface FooterSelect<T extends boolean = true> {
+  copyright?: T;
   navItems?:
     | T
     | {
+        title?: T;
         link?:
           | T
           | {
@@ -1661,14 +2148,18 @@ export interface TaskSchedulePublish {
     doc?:
       | ({
           relationTo: 'pages';
-          value: string | Page;
+          value: number | Page;
         } | null)
       | ({
           relationTo: 'posts';
-          value: string | Post;
+          value: number | Post;
+        } | null)
+      | ({
+          relationTo: 'products';
+          value: number | Product;
         } | null);
     global?: string | null;
-    user?: (string | null) | User;
+    user?: (number | null) | User;
   };
   output?: unknown;
 }

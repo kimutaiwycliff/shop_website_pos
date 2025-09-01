@@ -27,3 +27,18 @@ export const Logo = (props: Props) => {
     />
   )
 }
+
+export const LogoIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      {...props}
+  >
+      <path d="M12 2L14.39 8.36L21 10.36L16.36 14.81L18.18 21.64L12 17.77L5.82 21.64L7.64 14.81L3 10.36L9.61 8.36L12 2z" />
+  </svg>
+)

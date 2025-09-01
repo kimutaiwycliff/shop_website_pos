@@ -10,9 +10,19 @@ export const Footer: GlobalConfig = {
   },
   fields: [
     {
+      name: 'copyright',
+      type: 'text',
+      required: true,
+    },
+    {
       name: 'navItems',
       type: 'array',
       fields: [
+        {
+          name: 'title',
+          type: 'text',
+          required: true,
+        },
         link({
           appearances: false,
         }),
