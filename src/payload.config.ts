@@ -5,6 +5,7 @@ import sharp from 'sharp' // sharp-import
 import path from 'path'
 import { buildConfig, PayloadRequest } from 'payload'
 import { fileURLToPath } from 'url'
+import { resendAdapter } from '@payloadcms/email-resend'
 
 import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
@@ -71,7 +72,20 @@ export default buildConfig({
       url: process.env.DATABASE_URI || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Products, Orders, Brands, Customers, Inventory, Transactions, Cart],
+  collections: [
+    Pages,
+    Posts,
+    Media,
+    Categories,
+    Users,
+    Products,
+    Orders,
+    Brands,
+    Customers,
+    Inventory,
+    Transactions,
+    Cart,
+  ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins: [
@@ -98,4 +112,9 @@ export default buildConfig({
     },
     tasks: [],
   },
+  email: resendAdapter({
+    defaultFromAddress: 'noreply@wycliffkimutai.co.ke',
+    defaultFromName: 'Luxe Collections',
+    apiKey: process.env.RESEND_API_KEY || '',
+  }),
 })
