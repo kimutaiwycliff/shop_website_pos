@@ -23,6 +23,12 @@ import {
 import { DataTableBlock } from '@/blocks/DataTable/config'
 import { CategoryShowcase } from '@/blocks/CategoryShowCase/config'
 import { ProductShowcase } from '@/blocks/ProductShowcase'
+import { ProductGridBlock } from '@/blocks/ProductGrid/config'
+import { CheckoutBlock } from '@/blocks/Checkout/config'
+import { POSBlock } from '@/blocks/POS/config'
+import { AnalyticsDashboardBlock } from '@/blocks/AnalyticsDashboard/config'
+import { ShoppingCartBlock } from '@/blocks/ShoppingCart/config'
+import { InventoryManagementBlock } from '@/blocks/InventoryManagement/config'
 
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
@@ -78,9 +84,22 @@ export const Pages: CollectionConfig<'pages'> = {
             {
               name: 'layout',
               type: 'blocks',
-              blocks: [CallToAction, Content, MediaBlock, Archive, FormBlock, DataTableBlock,
+              blocks: [
+                CallToAction,
+                Content,
+                MediaBlock,
+                Archive,
+                FormBlock,
+                DataTableBlock,
                 CategoryShowcase,
-                ProductShowcase,],
+                ProductShowcase,
+                ProductGridBlock,
+                ShoppingCartBlock,
+                CheckoutBlock,
+                POSBlock,
+                AnalyticsDashboardBlock,
+                InventoryManagementBlock,
+              ],
               required: true,
               admin: {
                 initCollapsed: true,

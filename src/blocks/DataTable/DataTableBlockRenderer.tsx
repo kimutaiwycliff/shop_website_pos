@@ -6,6 +6,7 @@ import { DataTable } from '@/components/DataTable/components/data-table'
 import { FilterConfig } from '@/components/DataTable/components/data-table-toolbar'
 
 type Props = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[]
   defaultPageSize?: number
   filterConfigs?: FilterConfig[]

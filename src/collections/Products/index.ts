@@ -68,6 +68,25 @@ export const Products: CollectionConfig = {
             },
             ...slugField(),
             {
+              name: 'categories',
+              type: 'relationship',
+              relationTo: 'categories',
+              hasMany: true,
+              admin: {
+                position: 'sidebar',
+                description: 'Assign this product to one or more categories',
+              },
+            },
+            {
+              name: 'brand',
+              type: 'relationship',
+              relationTo: 'brands',
+              admin: {
+                position: 'sidebar',
+                description: 'Select the brand for this product',
+              },
+            },
+            {
               name: 'description',
               type: 'richText',
               admin: {
@@ -135,6 +154,7 @@ export const Products: CollectionConfig = {
                   defaultValue: false,
                   admin: {
                     description: 'The primary image will be featured as the main product image',
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     condition: (data, siblingData, { user }) => {
                       // Only show if there are multiple images
                       if (siblingData?.images?.length > 1) return true
@@ -551,6 +571,7 @@ export const Products: CollectionConfig = {
       async ({ data }) => {
         // Auto-set the first image as primary if none is set
         if (data.images?.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const hasPrimary = data.images.some((img: any) => img.isPrimary)
           if (!hasPrimary) {
             data.images[0].isPrimary = true

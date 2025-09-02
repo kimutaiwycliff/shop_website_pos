@@ -10,6 +10,12 @@ import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { DataTableBlock } from './DataTable/Component'
 import { CategoryShowCaseBlock } from './CategoryShowCase/Component'
 import { ProductShowcaseBlock } from './ProductShowcase/Component'
+import ProductGridComponent from './ProductGrid/Component'
+import ShoppingCartComponent from './ShoppingCart/Component'
+import CheckoutComponent from './Checkout/Component'
+import POSComponent from './POS/Component'
+import AnalyticsDashboardComponent from './AnalyticsDashboard/Component'
+import InventoryManagementComponent from './InventoryManagement/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -20,6 +26,12 @@ const blockComponents = {
   dataTable: DataTableBlock,
   categoryShowcase: CategoryShowCaseBlock,
   productShowcase: ProductShowcaseBlock,
+  productGrid: ProductGridComponent,
+  shoppingCart: ShoppingCartComponent,
+  checkout: CheckoutComponent,
+  pos: POSComponent,
+  analyticsDashboard: AnalyticsDashboardComponent,
+  inventoryManagement: InventoryManagementComponent,
 }
 
 export const RenderBlocks: React.FC<{

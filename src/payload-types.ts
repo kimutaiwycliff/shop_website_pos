@@ -72,9 +72,13 @@ export interface Config {
     media: Media;
     categories: Category;
     users: User;
-    orders: Order;
     products: Product;
+    orders: Order;
     brands: Brand;
+    customers: Customer;
+    inventory: Inventory;
+    transactions: Transaction;
+    cart: Cart;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -96,9 +100,13 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
-    orders: OrdersSelect<false> | OrdersSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
     brands: BrandsSelect<false> | BrandsSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
+    inventory: InventorySelect<false> | InventorySelect<true>;
+    transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    cart: CartSelect<false> | CartSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -249,6 +257,12 @@ export interface Page {
     | DataTableBlock
     | CategoryShowcaseBlock
     | ProductShowcaseBlock
+    | ProductGridBlock
+    | ShoppingCartBlock
+    | CheckoutBlock
+    | POSBlock
+    | AnalyticsDashboardBlock
+    | InventoryManagementBlock
   )[];
   meta?: {
     title?: string | null;
@@ -897,6 +911,14 @@ export interface Product {
   slug?: string | null;
   slugLock?: boolean | null;
   /**
+   * Assign this product to one or more categories
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * Select the brand for this product
+   */
+  brand?: (number | null) | Brand;
+  /**
    * Detailed description of the product. Include key features, benefits, and specifications.
    */
   description?: {
@@ -1071,6 +1093,368 @@ export interface Product {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Manage brand information and settings
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brands".
+ */
+export interface Brand {
+  id: number;
+  /**
+   * Brand name as it appears to customers
+   */
+  name: string;
+  slug?: string | null;
+  slugLock?: boolean | null;
+  /**
+   * Brief description of the brand
+   */
+  description?: string | null;
+  /**
+   * Brand logo (recommended: square format, min 200x200px)
+   */
+  logo: number | Media;
+  /**
+   * Brand website URL
+   */
+  website?: string | null;
+  /**
+   * Only active brands will be displayed on the website
+   */
+  isActive?: boolean | null;
+  contact?: {
+    email?: string | null;
+    phone?: string | null;
+    address?: {
+      street?: string | null;
+      city?: string | null;
+      country?: string | null;
+    };
+  };
+  meta?: {
+    title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+    description?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductGridBlock".
+ */
+export interface ProductGridBlock {
+  /**
+   * Optional title for the product grid section
+   */
+  title?: string | null;
+  /**
+   * Optional description text
+   */
+  description?: string | null;
+  displayMode: 'featured' | 'latest' | 'bestsellers' | 'sale' | 'category' | 'brand' | 'manual';
+  /**
+   * Select categories to display products from
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * Select brands to display products from
+   */
+  brands?: (number | Brand)[] | null;
+  /**
+   * Manually select products to display
+   */
+  products?: (number | Product)[] | null;
+  limit?: number | null;
+  columns?: ('two' | 'three' | 'four' | 'five' | 'six') | null;
+  /**
+   * Display category, brand, and price filters
+   */
+  showFilters?: boolean | null;
+  /**
+   * Allow users to sort by price, name, date, etc.
+   */
+  showSorting?: boolean | null;
+  /**
+   * Enable pagination for large product sets
+   */
+  showPagination?: boolean | null;
+  /**
+   * Allow users to preview products without leaving the page
+   */
+  enableQuickView?: boolean | null;
+  /**
+   * Display wishlist/favorite button on product cards
+   */
+  enableWishlist?: boolean | null;
+  /**
+   * Allow users to compare products
+   */
+  showCompare?: boolean | null;
+  cardStyle?: ('standard' | 'minimal' | 'detailed' | 'compact') | null;
+  /**
+   * Display "New", "Sale", "Out of Stock" badges
+   */
+  showProductBadges?: boolean | null;
+  backgroundColor?: ('transparent' | 'white' | 'light' | 'dark') | null;
+  spacing?: ('none' | 'small' | 'normal' | 'large') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'productGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ShoppingCartBlock".
+ */
+export interface ShoppingCartBlock {
+  /**
+   * Title displayed at the top of the cart
+   */
+  title?: string | null;
+  /**
+   * Display recommended products below the cart
+   */
+  showRecommendations?: boolean | null;
+  /**
+   * Allow customers to enter discount codes
+   */
+  enablePromoCode?: boolean | null;
+  /**
+   * Allow customers to move items to wishlist
+   */
+  enableSaveForLater?: boolean | null;
+  /**
+   * URL for the "Continue Shopping" button
+   */
+  continueShoppingUrl?: string | null;
+  /**
+   * URL for the checkout page
+   */
+  checkoutUrl?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'shoppingCart';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CheckoutBlock".
+ */
+export interface CheckoutBlock {
+  title?: string | null;
+  /**
+   * Allow customers to checkout without creating an account
+   */
+  enableGuestCheckout?: boolean | null;
+  /**
+   * Make phone number a required field
+   */
+  requirePhoneNumber?: boolean | null;
+  /**
+   * Enable Google Places address autocomplete
+   */
+  enableAddressAutocomplete?: boolean | null;
+  defaultCountry?: ('KE' | 'UG' | 'TZ' | 'RW') | null;
+  /**
+   * Configure which payment methods are available
+   */
+  paymentMethods?:
+    | {
+        method: 'mpesa' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'cod';
+        enabled?: boolean | null;
+        processingFee?: number | null;
+        /**
+         * Description shown to customers
+         */
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  shippingMethods?:
+    | {
+        name: string;
+        description?: string | null;
+        cost: number;
+        estimatedDays?: number | null;
+        freeShippingThreshold?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  termsUrl?: string | null;
+  privacyUrl?: string | null;
+  orderSuccessUrl?: string | null;
+  orderFailureUrl?: string | null;
+  /**
+   * Allow customers to add notes to their order
+   */
+  enableOrderNotes?: boolean | null;
+  /**
+   * Show newsletter signup option during checkout
+   */
+  enableNewsletter?: boolean | null;
+  taxSettings?: {
+    taxRate?: number | null;
+    taxIncluded?: boolean | null;
+    taxLabel?: string | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'checkout';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "POSBlock".
+ */
+export interface POSBlock {
+  title?: string | null;
+  /**
+   * Name of the store location
+   */
+  storeName: string;
+  /**
+   * Require staff to login before using POS
+   */
+  cashierRequired?: boolean | null;
+  /**
+   * Allow products to be added by scanning barcodes
+   */
+  enableBarcodeScanning?: boolean | null;
+  /**
+   * Show order details to customer on a second screen
+   */
+  enableCustomerDisplay?: boolean | null;
+  /**
+   * Print receipts automatically after payment
+   */
+  enableReceiptPrinting?: boolean | null;
+  /**
+   * Connect to cash drawer hardware
+   */
+  enableCashDrawer?: boolean | null;
+  /**
+   * Categories to show as quick access buttons
+   */
+  quickSaleCategories?: (number | Category)[] | null;
+  paymentMethods?:
+    | {
+        method: 'cash' | 'mpesa' | 'credit_card' | 'debit_card' | 'store_credit';
+        enabled?: boolean | null;
+        /**
+         * Method requires card reader or other hardware
+         */
+        requiresHardware?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  receiptSettings?: {
+    headerText?: string | null;
+    footerText?: string | null;
+    showLogo?: boolean | null;
+    logo?: (number | null) | Media;
+  };
+  taxSettings?: {
+    defaultTaxRate?: number | null;
+    taxIncluded?: boolean | null;
+  };
+  discountSettings?: {
+    enableLineItemDiscounts?: boolean | null;
+    enableOrderDiscounts?: boolean | null;
+    maxDiscountPercent?: number | null;
+    requireManagerApproval?: boolean | null;
+    managerApprovalThreshold?: number | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'pos';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AnalyticsDashboardBlock".
+ */
+export interface AnalyticsDashboardBlock {
+  title?: string | null;
+  dateRange?:
+    | (
+        | 'today'
+        | 'yesterday'
+        | 'last_7_days'
+        | 'last_30_days'
+        | 'last_90_days'
+        | 'this_month'
+        | 'last_month'
+        | 'this_year'
+        | 'custom'
+      )
+    | null;
+  /**
+   * Configure which analytics widgets to display
+   */
+  widgets?:
+    | {
+        type:
+          | 'sales_overview'
+          | 'revenue_chart'
+          | 'order_stats'
+          | 'top_products'
+          | 'customer_analytics'
+          | 'inventory_alerts'
+          | 'payment_methods'
+          | 'geographic_sales'
+          | 'conversion_funnel'
+          | 'recent_orders';
+        /**
+         * Custom title for this widget (optional)
+         */
+        title?: string | null;
+        size?: ('small' | 'medium' | 'large' | 'full') | null;
+        enabled?: boolean | null;
+        refreshInterval?: ('none' | '1m' | '5m' | '15m' | '1h') | null;
+        id?: string | null;
+      }[]
+    | null;
+  permissions?: {
+    /**
+     * Which user roles can view this dashboard
+     */
+    allowedRoles?: ('admin' | 'manager' | 'staff')[] | null;
+    /**
+     * Hide revenue and profit data from non-admin users
+     */
+    hideFinancials?: boolean | null;
+  };
+  exportOptions?: {
+    enablePdfExport?: boolean | null;
+    enableCsvExport?: boolean | null;
+    /**
+     * Allow users to schedule automatic report generation
+     */
+    enableScheduledReports?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'analyticsDashboard';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InventoryManagementBlock".
+ */
+export interface InventoryManagementBlock {
+  title?: string | null;
+  /**
+   * Allow bulk stock updates and transfers
+   */
+  enableBulkActions?: boolean | null;
+  /**
+   * Show low stock and out of stock alerts
+   */
+  enableStockAlerts?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'inventoryManagement';
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
@@ -1133,13 +1517,248 @@ export interface Order {
   createdAt: string;
 }
 /**
+ * Manage customer information and order history
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "brands".
+ * via the `definition` "customers".
  */
-export interface Brand {
+export interface Customer {
   id: number;
-  name: string;
-  logo?: (number | null) | Media;
+  firstName: string;
+  lastName: string;
+  /**
+   * Auto-generated from first and last name
+   */
+  fullName?: string | null;
+  email: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  gender?: ('male' | 'female' | 'other' | 'not_specified') | null;
+  /**
+   * Internal notes about this customer
+   */
+  notes?: string | null;
+  addresses?:
+    | {
+        label: string;
+        firstName: string;
+        lastName: string;
+        company?: string | null;
+        address1: string;
+        address2?: string | null;
+        city: string;
+        state?: string | null;
+        zipCode?: string | null;
+        country: 'KE' | 'UG' | 'TZ' | 'RW' | 'OTHER';
+        isDefault?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * All orders placed by this customer
+   */
+  orders?: (number | Order)[] | null;
+  totalOrders?: number | null;
+  totalSpent?: number | null;
+  lastOrderDate?: string | null;
+  averageOrderValue?: number | null;
+  preferences?: {
+    /**
+     * Customer consents to receive marketing emails
+     */
+    emailMarketing?: boolean | null;
+    /**
+     * Customer consents to receive SMS notifications
+     */
+    smsMarketing?: boolean | null;
+    /**
+     * Product categories this customer is interested in
+     */
+    favoriteCategories?: (number | Category)[] | null;
+    size?: ('XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL') | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Track inventory levels and stock movements
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory".
+ */
+export interface Inventory {
+  id: number;
+  /**
+   * The product this inventory record tracks
+   */
+  product: number | Product;
+  /**
+   * Auto-populated from product
+   */
+  productName?: string | null;
+  /**
+   * Auto-populated from product
+   */
+  sku?: string | null;
+  currentStock: number;
+  /**
+   * Low stock alert threshold
+   */
+  minStockLevel: number;
+  /**
+   * Maximum recommended stock level
+   */
+  maxStockLevel?: number | null;
+  /**
+   * Automatic reorder trigger point
+   */
+  reorderPoint?: number | null;
+  /**
+   * Current stock status
+   */
+  status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'discontinued';
+  location?: {
+    warehouse?: string | null;
+    aisle?: string | null;
+    shelf?: string | null;
+    bin?: string | null;
+  };
+  /**
+   * Automatic log of all stock changes
+   */
+  stockMovements?:
+    | {
+        type: 'sale' | 'restock' | 'return' | 'damage' | 'loss' | 'adjustment';
+        quantity: number;
+        previousStock: number;
+        newStock: number;
+        reason: string;
+        /**
+         * Order number, supplier reference, etc.
+         */
+        reference?: string | null;
+        /**
+         * User who made this change
+         */
+        user?: (number | null) | User;
+        timestamp: string;
+        id?: string | null;
+      }[]
+    | null;
+  supplier?: {
+    name?: string | null;
+    contact?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    /**
+     * Time it takes to receive new stock
+     */
+    leadTime?: number | null;
+  };
+  costInfo?: {
+    lastPurchasePrice?: number | null;
+    averageCost?: number | null;
+    lastPurchaseDate?: string | null;
+  };
+  /**
+   * Additional notes about this inventory item
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * All financial transactions including sales, refunds, and adjustments
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "transactions".
+ */
+export interface Transaction {
+  id: number;
+  /**
+   * Auto-generated unique transaction ID
+   */
+  transactionId: string;
+  type: 'sale' | 'refund' | 'partial_refund' | 'store_credit' | 'payment' | 'adjustment';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+  /**
+   * Transaction amount in KES
+   */
+  amount: number;
+  currency?: ('KES' | 'USD' | 'EUR') | null;
+  /**
+   * Related order (if applicable)
+   */
+  order?: (number | null) | Order;
+  /**
+   * Customer involved in this transaction
+   */
+  customer?: (number | null) | User;
+  paymentMethod: 'cash' | 'mpesa' | 'credit_card' | 'debit_card' | 'bank_transfer' | 'store_credit' | 'other';
+  /**
+   * Additional notes about this transaction
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Shopping cart sessions
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cart".
+ */
+export interface Cart {
+  id: number;
+  /**
+   * Registered customer (null for guest carts)
+   */
+  customer?: (number | null) | User;
+  /**
+   * Session ID for guest carts
+   */
+  sessionId?: string | null;
+  items: {
+    product: number | Product;
+    quantity: number;
+    selectedVariants?: {
+      size?: string | null;
+      color?: string | null;
+    };
+    /**
+     * Price per unit at time of adding to cart
+     */
+    unitPrice: number;
+    /**
+     * quantity × unitPrice
+     */
+    lineTotal?: number | null;
+    addedAt?: string | null;
+    id?: string | null;
+  }[];
+  itemsCount?: number | null;
+  subtotal?: number | null;
+  total?: number | null;
+  status: 'active' | 'abandoned' | 'converted' | 'expired';
+  coupon?: {
+    code?: string | null;
+    discountType?: ('percentage' | 'fixed') | null;
+    discountValue?: number | null;
+    discountAmount?: number | null;
+  };
+  shippingEstimate?: {
+    method?: string | null;
+    cost?: number | null;
+    estimatedDays?: number | null;
+  };
+  /**
+   * When this cart expires (for cleanup)
+   */
+  expiresAt?: string | null;
+  /**
+   * Customer notes or special instructions
+   */
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1337,16 +1956,32 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
-        relationTo: 'orders';
-        value: number | Order;
-      } | null)
-    | ({
         relationTo: 'products';
         value: number | Product;
       } | null)
     | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
         relationTo: 'brands';
         value: number | Brand;
+      } | null)
+    | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null)
+    | ({
+        relationTo: 'inventory';
+        value: number | Inventory;
+      } | null)
+    | ({
+        relationTo: 'transactions';
+        value: number | Transaction;
+      } | null)
+    | ({
+        relationTo: 'cart';
+        value: number | Cart;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1481,6 +2116,12 @@ export interface PagesSelect<T extends boolean = true> {
         dataTable?: T | DataTableBlockSelect<T>;
         categoryShowcase?: T | CategoryShowcaseBlockSelect<T>;
         productShowcase?: T | ProductShowcaseBlockSelect<T>;
+        productGrid?: T | ProductGridBlockSelect<T>;
+        shoppingCart?: T | ShoppingCartBlockSelect<T>;
+        checkout?: T | CheckoutBlockSelect<T>;
+        pos?: T | POSBlockSelect<T>;
+        analyticsDashboard?: T | AnalyticsDashboardBlockSelect<T>;
+        inventoryManagement?: T | InventoryManagementBlockSelect<T>;
       };
   meta?:
     | T
@@ -1634,6 +2275,182 @@ export interface ProductShowcaseBlockSelect<T extends boolean = true> {
   products?: T;
   showPricing?: T;
   showDescription?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductGridBlock_select".
+ */
+export interface ProductGridBlockSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  displayMode?: T;
+  categories?: T;
+  brands?: T;
+  products?: T;
+  limit?: T;
+  columns?: T;
+  showFilters?: T;
+  showSorting?: T;
+  showPagination?: T;
+  enableQuickView?: T;
+  enableWishlist?: T;
+  showCompare?: T;
+  cardStyle?: T;
+  showProductBadges?: T;
+  backgroundColor?: T;
+  spacing?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ShoppingCartBlock_select".
+ */
+export interface ShoppingCartBlockSelect<T extends boolean = true> {
+  title?: T;
+  showRecommendations?: T;
+  enablePromoCode?: T;
+  enableSaveForLater?: T;
+  continueShoppingUrl?: T;
+  checkoutUrl?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CheckoutBlock_select".
+ */
+export interface CheckoutBlockSelect<T extends boolean = true> {
+  title?: T;
+  enableGuestCheckout?: T;
+  requirePhoneNumber?: T;
+  enableAddressAutocomplete?: T;
+  defaultCountry?: T;
+  paymentMethods?:
+    | T
+    | {
+        method?: T;
+        enabled?: T;
+        processingFee?: T;
+        description?: T;
+        id?: T;
+      };
+  shippingMethods?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        cost?: T;
+        estimatedDays?: T;
+        freeShippingThreshold?: T;
+        id?: T;
+      };
+  termsUrl?: T;
+  privacyUrl?: T;
+  orderSuccessUrl?: T;
+  orderFailureUrl?: T;
+  enableOrderNotes?: T;
+  enableNewsletter?: T;
+  taxSettings?:
+    | T
+    | {
+        taxRate?: T;
+        taxIncluded?: T;
+        taxLabel?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "POSBlock_select".
+ */
+export interface POSBlockSelect<T extends boolean = true> {
+  title?: T;
+  storeName?: T;
+  cashierRequired?: T;
+  enableBarcodeScanning?: T;
+  enableCustomerDisplay?: T;
+  enableReceiptPrinting?: T;
+  enableCashDrawer?: T;
+  quickSaleCategories?: T;
+  paymentMethods?:
+    | T
+    | {
+        method?: T;
+        enabled?: T;
+        requiresHardware?: T;
+        id?: T;
+      };
+  receiptSettings?:
+    | T
+    | {
+        headerText?: T;
+        footerText?: T;
+        showLogo?: T;
+        logo?: T;
+      };
+  taxSettings?:
+    | T
+    | {
+        defaultTaxRate?: T;
+        taxIncluded?: T;
+      };
+  discountSettings?:
+    | T
+    | {
+        enableLineItemDiscounts?: T;
+        enableOrderDiscounts?: T;
+        maxDiscountPercent?: T;
+        requireManagerApproval?: T;
+        managerApprovalThreshold?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AnalyticsDashboardBlock_select".
+ */
+export interface AnalyticsDashboardBlockSelect<T extends boolean = true> {
+  title?: T;
+  dateRange?: T;
+  widgets?:
+    | T
+    | {
+        type?: T;
+        title?: T;
+        size?: T;
+        enabled?: T;
+        refreshInterval?: T;
+        id?: T;
+      };
+  permissions?:
+    | T
+    | {
+        allowedRoles?: T;
+        hideFinancials?: T;
+      };
+  exportOptions?:
+    | T
+    | {
+        enablePdfExport?: T;
+        enableCsvExport?: T;
+        enableScheduledReports?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "InventoryManagementBlock_select".
+ */
+export interface InventoryManagementBlockSelect<T extends boolean = true> {
+  title?: T;
+  enableBulkActions?: T;
+  enableStockAlerts?: T;
   id?: T;
   blockName?: T;
 }
@@ -1810,6 +2627,73 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  slugLock?: T;
+  categories?: T;
+  brand?: T;
+  description?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        alt?: T;
+        isPrimary?: T;
+        id?: T;
+      };
+  colors?:
+    | T
+    | {
+        colorName?: T;
+        colorCode?: T;
+        colorImage?: T;
+        id?: T;
+      };
+  sizes?:
+    | T
+    | {
+        sizeName?: T;
+        sizeCode?: T;
+        inStock?: T;
+        stockQuantity?: T;
+        id?: T;
+      };
+  sku?: T;
+  barcode?: T;
+  costPrice?: T;
+  price?: T;
+  originalPrice?: T;
+  taxRate?: T;
+  inStock?: T;
+  lowStockThreshold?: T;
+  trackInventory?: T;
+  currency?: T;
+  weight?: T;
+  dimensions?:
+    | T
+    | {
+        length?: T;
+        width?: T;
+        height?: T;
+      };
+  shippingClass?: T;
+  shippingNotes?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        image?: T;
+        description?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders_select".
  */
 export interface OrdersSelect<T extends boolean = true> {
@@ -1883,58 +2767,29 @@ export interface OrdersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "products_select".
+ * via the `definition` "brands_select".
  */
-export interface ProductsSelect<T extends boolean = true> {
-  title?: T;
+export interface BrandsSelect<T extends boolean = true> {
+  name?: T;
   slug?: T;
   slugLock?: T;
   description?: T;
-  images?:
+  logo?: T;
+  website?: T;
+  isActive?: T;
+  contact?:
     | T
     | {
-        image?: T;
-        alt?: T;
-        isPrimary?: T;
-        id?: T;
+        email?: T;
+        phone?: T;
+        address?:
+          | T
+          | {
+              street?: T;
+              city?: T;
+              country?: T;
+            };
       };
-  colors?:
-    | T
-    | {
-        colorName?: T;
-        colorCode?: T;
-        colorImage?: T;
-        id?: T;
-      };
-  sizes?:
-    | T
-    | {
-        sizeName?: T;
-        sizeCode?: T;
-        inStock?: T;
-        stockQuantity?: T;
-        id?: T;
-      };
-  sku?: T;
-  barcode?: T;
-  costPrice?: T;
-  price?: T;
-  originalPrice?: T;
-  taxRate?: T;
-  inStock?: T;
-  lowStockThreshold?: T;
-  trackInventory?: T;
-  currency?: T;
-  weight?: T;
-  dimensions?:
-    | T
-    | {
-        length?: T;
-        width?: T;
-        height?: T;
-      };
-  shippingClass?: T;
-  shippingNotes?: T;
   meta?:
     | T
     | {
@@ -1944,15 +2799,167 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "brands_select".
+ * via the `definition` "customers_select".
  */
-export interface BrandsSelect<T extends boolean = true> {
-  name?: T;
-  logo?: T;
+export interface CustomersSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
+  fullName?: T;
+  email?: T;
+  phone?: T;
+  dateOfBirth?: T;
+  gender?: T;
+  notes?: T;
+  addresses?:
+    | T
+    | {
+        label?: T;
+        firstName?: T;
+        lastName?: T;
+        company?: T;
+        address1?: T;
+        address2?: T;
+        city?: T;
+        state?: T;
+        zipCode?: T;
+        country?: T;
+        isDefault?: T;
+        id?: T;
+      };
+  orders?: T;
+  totalOrders?: T;
+  totalSpent?: T;
+  lastOrderDate?: T;
+  averageOrderValue?: T;
+  preferences?:
+    | T
+    | {
+        emailMarketing?: T;
+        smsMarketing?: T;
+        favoriteCategories?: T;
+        size?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory_select".
+ */
+export interface InventorySelect<T extends boolean = true> {
+  product?: T;
+  productName?: T;
+  sku?: T;
+  currentStock?: T;
+  minStockLevel?: T;
+  maxStockLevel?: T;
+  reorderPoint?: T;
+  status?: T;
+  location?:
+    | T
+    | {
+        warehouse?: T;
+        aisle?: T;
+        shelf?: T;
+        bin?: T;
+      };
+  stockMovements?:
+    | T
+    | {
+        type?: T;
+        quantity?: T;
+        previousStock?: T;
+        newStock?: T;
+        reason?: T;
+        reference?: T;
+        user?: T;
+        timestamp?: T;
+        id?: T;
+      };
+  supplier?:
+    | T
+    | {
+        name?: T;
+        contact?: T;
+        phone?: T;
+        email?: T;
+        leadTime?: T;
+      };
+  costInfo?:
+    | T
+    | {
+        lastPurchasePrice?: T;
+        averageCost?: T;
+        lastPurchaseDate?: T;
+      };
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "transactions_select".
+ */
+export interface TransactionsSelect<T extends boolean = true> {
+  transactionId?: T;
+  type?: T;
+  status?: T;
+  amount?: T;
+  currency?: T;
+  order?: T;
+  customer?: T;
+  paymentMethod?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cart_select".
+ */
+export interface CartSelect<T extends boolean = true> {
+  customer?: T;
+  sessionId?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        quantity?: T;
+        selectedVariants?:
+          | T
+          | {
+              size?: T;
+              color?: T;
+            };
+        unitPrice?: T;
+        lineTotal?: T;
+        addedAt?: T;
+        id?: T;
+      };
+  itemsCount?: T;
+  subtotal?: T;
+  total?: T;
+  status?: T;
+  coupon?:
+    | T
+    | {
+        code?: T;
+        discountType?: T;
+        discountValue?: T;
+        discountAmount?: T;
+      };
+  shippingEstimate?:
+    | T
+    | {
+        method?: T;
+        cost?: T;
+        estimatedDays?: T;
+      };
+  expiresAt?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
