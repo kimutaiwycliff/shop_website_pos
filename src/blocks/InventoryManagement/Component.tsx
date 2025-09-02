@@ -187,9 +187,23 @@ const InventoryManagementComponent: React.FC<Props> = ({
       case 'in_stock':
         return <Badge variant="default">In Stock</Badge>
       case 'low_stock':
-        return <Badge variant="secondary">Low Stock</Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200"
+          >
+            Low Stock
+          </Badge>
+        )
       case 'out_of_stock':
-        return <Badge variant="destructive">Out of Stock</Badge>
+        return (
+          <Badge
+            variant="destructive"
+            className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+          >
+            Out of Stock
+          </Badge>
+        )
       default:
         return <Badge variant="outline">Unknown</Badge>
     }

@@ -107,7 +107,7 @@ const CheckoutComponent: React.FC<Props> = ({
   const [currentStep, setCurrentStep] = useState(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  const [isLoggedIn, ] = useState(false)
+  const [isLoggedIn] = useState(false)
 
   // Mock cart items - replace with actual cart data
   const [cartItems] = useState([
@@ -263,7 +263,9 @@ const CheckoutComponent: React.FC<Props> = ({
                           'flex items-center justify-center w-10 h-10 rounded-full border-2',
                           isCompleted && 'bg-green-500 border-green-500 text-white',
                           isActive && 'bg-primary border-primary text-white',
-                          !isActive && !isCompleted && 'bg-white border-gray-300 text-gray-400',
+                          !isActive &&
+                            !isCompleted &&
+                            'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500',
                         )}
                       >
                         {isCompleted ? (
@@ -276,8 +278,8 @@ const CheckoutComponent: React.FC<Props> = ({
                         className={cn(
                           'ml-3 text-sm font-medium',
                           isActive && 'text-primary',
-                          isCompleted && 'text-green-600',
-                          !isActive && !isCompleted && 'text-gray-400',
+                          isCompleted && 'text-green-600 dark:text-green-400',
+                          !isActive && !isCompleted && 'text-gray-400 dark:text-gray-500',
                         )}
                       >
                         {step.title}
@@ -287,7 +289,7 @@ const CheckoutComponent: React.FC<Props> = ({
                       <div
                         className={cn(
                           'flex-1 h-0.5 mx-4',
-                          isCompleted ? 'bg-green-500' : 'bg-gray-200',
+                          isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700',
                         )}
                       />
                     )}
@@ -309,8 +311,8 @@ const CheckoutComponent: React.FC<Props> = ({
                         <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
 
                         {enableGuestCheckout && !isLoggedIn && (
-                          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                            <p className="text-sm text-blue-800">
+                          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
                               Already have an account?
                               <Link href="/login" className="font-medium underline ml-1">
                                 Sign in
@@ -330,7 +332,9 @@ const CheckoutComponent: React.FC<Props> = ({
                             className={errors.firstName ? 'border-red-500' : ''}
                           />
                           {errors.firstName && (
-                            <p className="text-sm text-red-500 mt-1">{errors.firstName}</p>
+                            <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                              {errors.firstName}
+                            </p>
                           )}
                         </div>
 
@@ -343,7 +347,9 @@ const CheckoutComponent: React.FC<Props> = ({
                             className={errors.lastName ? 'border-red-500' : ''}
                           />
                           {errors.lastName && (
-                            <p className="text-sm text-red-500 mt-1">{errors.lastName}</p>
+                            <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                              {errors.lastName}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -358,7 +364,9 @@ const CheckoutComponent: React.FC<Props> = ({
                           className={errors.email ? 'border-red-500' : ''}
                         />
                         {errors.email && (
-                          <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                          <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                            {errors.email}
+                          </p>
                         )}
                       </div>
 
@@ -373,7 +381,9 @@ const CheckoutComponent: React.FC<Props> = ({
                           className={errors.phone ? 'border-red-500' : ''}
                         />
                         {errors.phone && (
-                          <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+                          <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                            {errors.phone}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -395,7 +405,9 @@ const CheckoutComponent: React.FC<Props> = ({
                           className={errors.shippingAddress1 ? 'border-red-500' : ''}
                         />
                         {errors.shippingAddress1 && (
-                          <p className="text-sm text-red-500 mt-1">{errors.shippingAddress1}</p>
+                          <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                            {errors.shippingAddress1}
+                          </p>
                         )}
                       </div>
 
@@ -422,7 +434,9 @@ const CheckoutComponent: React.FC<Props> = ({
                             className={errors.shippingCity ? 'border-red-500' : ''}
                           />
                           {errors.shippingCity && (
-                            <p className="text-sm text-red-500 mt-1">{errors.shippingCity}</p>
+                            <p className="text-sm text-red-500 dark:text-red-400 mt-1">
+                              {errors.shippingCity}
+                            </p>
                           )}
                         </div>
 

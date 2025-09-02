@@ -38,6 +38,7 @@ import {
   Lock,
   Unlock,
 } from 'lucide-react'
+import { cn } from '@/utilities/ui'
 import Image from 'next/image'
 
 interface POSItem {
@@ -76,11 +77,11 @@ const POSComponent: React.FC<Props> = ({
   storeName = 'Main Store',
   cashierRequired = true,
   enableBarcodeScanning = true,
-//   enableCustomerDisplay = true,
+  //   enableCustomerDisplay = true,
   enableReceiptPrinting = true,
-//   enableCashDrawer = true,
+  //   enableCashDrawer = true,
   paymentMethods = [],
-//   receiptSettings,
+  //   receiptSettings,
   taxSettings,
   discountSettings,
 }) => {
@@ -259,8 +260,8 @@ const POSComponent: React.FC<Props> = ({
 
   if (isLocked) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+        <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">{title}</CardTitle>
             <p className="text-muted-foreground">{storeName}</p>
@@ -288,9 +289,9 @@ const POSComponent: React.FC<Props> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3">
+      <div className="bg-white dark:bg-gray-800 border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold">{title}</h1>
@@ -314,7 +315,7 @@ const POSComponent: React.FC<Props> = ({
 
       <div className="flex h-[calc(100vh-70px)]">
         {/* Left Panel - Products */}
-        <div className="flex-1 p-4 space-y-4">
+        <div className="flex-1 p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
           {/* Search */}
           <div className="space-y-2">
             <div className="relative">
@@ -347,7 +348,7 @@ const POSComponent: React.FC<Props> = ({
             {filteredProducts.map((product) => (
               <Card
                 key={product.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 onClick={() => addToCart(product)}
               >
                 <CardContent className="p-3">
@@ -367,7 +368,12 @@ const POSComponent: React.FC<Props> = ({
                     <span className="font-semibold text-sm">{formatPrice(product.price)}</span>
                     <Badge
                       variant={product.inStock > 0 ? 'default' : 'destructive'}
-                      className="text-xs"
+                      className={cn(
+                        'text-xs',
+                        product.inStock > 0
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
+                      )}
                     >
                       {product.inStock}
                     </Badge>
@@ -379,9 +385,9 @@ const POSComponent: React.FC<Props> = ({
         </div>
 
         {/* Right Panel - Cart */}
-        <div className="w-96 bg-white border-l flex flex-col">
+        <div className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
           {/* Cart Header */}
-          <div className="p-4 border-b">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4" />
@@ -401,7 +407,7 @@ const POSComponent: React.FC<Props> = ({
                     {customer ? customer.name : 'Add Customer'}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <DialogHeader>
                     <DialogTitle>Customer Information</DialogTitle>
                   </DialogHeader>
@@ -445,7 +451,10 @@ const POSComponent: React.FC<Props> = ({
               </div>
             ) : (
               cart.map((item) => (
-                <Card key={item.id} className="p-3">
+                <Card
+                  key={item.id}
+                  className="p-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                >
                   <div className="space-y-3">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -465,7 +474,7 @@ const POSComponent: React.FC<Props> = ({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center border rounded">
+                      <div className="flex items-center border border-gray-200 dark:border-gray-600 rounded">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -492,7 +501,7 @@ const POSComponent: React.FC<Props> = ({
                           {formatPrice(item.lineTotal - item.discount)}
                         </div>
                         {item.discount > 0 && (
-                          <div className="text-xs text-green-600">
+                          <div className="text-xs text-green-600 dark:text-green-400">
                             -{formatPrice(item.discount)}
                           </div>
                         )}
@@ -521,7 +530,7 @@ const POSComponent: React.FC<Props> = ({
 
           {/* Cart Summary */}
           {cart.length > 0 && (
-            <div className="border-t p-4 space-y-3">
+            <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-3">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -547,7 +556,7 @@ const POSComponent: React.FC<Props> = ({
                     Charge {formatPrice(total)}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <DialogHeader>
                     <DialogTitle>Process Payment</DialogTitle>
                   </DialogHeader>
@@ -599,7 +608,13 @@ const POSComponent: React.FC<Props> = ({
                           <div className="mt-2 text-sm">
                             <div className="flex justify-between">
                               <span>Change due:</span>
-                              <span className={change < 0 ? 'text-red-500' : 'text-green-600'}>
+                              <span
+                                className={
+                                  change < 0
+                                    ? 'text-red-500 dark:text-red-400'
+                                    : 'text-green-600 dark:text-green-400'
+                                }
+                              >
                                 {formatPrice(Math.abs(change))}
                               </span>
                             </div>
@@ -626,7 +641,7 @@ const POSComponent: React.FC<Props> = ({
 
       {/* Discount Dialog */}
       <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
-        <DialogContent>
+        <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <DialogHeader>
             <DialogTitle>Apply Discount</DialogTitle>
           </DialogHeader>

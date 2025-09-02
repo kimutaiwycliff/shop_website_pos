@@ -4,7 +4,13 @@ import React, { useState } from 'react'
 import { AnalyticsDashboardBlock as AnalyticsDashboardBlockType } from '@/payload-types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
@@ -31,39 +37,51 @@ const mockAnalyticsData = {
     revenueGrowth: 12.5,
     ordersGrowth: 8.3,
     aovGrowth: -2.1,
-    conversionGrowth: 15.7
+    conversionGrowth: 15.7,
   },
   topProducts: [
     { id: '1', name: 'Premium Cotton T-Shirt', revenue: 25000, units: 125, growth: 18.5 },
     { id: '2', name: 'Denim Jeans', revenue: 18000, units: 45, growth: -5.2 },
     { id: '3', name: 'Summer Dress', revenue: 15000, units: 38, growth: 22.1 },
     { id: '4', name: 'Casual Sneakers', revenue: 12000, units: 24, growth: 8.9 },
-    { id: '5', name: 'Leather Jacket', revenue: 10000, units: 12, growth: 35.6 }
+    { id: '5', name: 'Leather Jacket', revenue: 10000, units: 12, growth: 35.6 },
   ],
   customerAnalytics: {
     totalCustomers: 1250,
     newCustomers: 89,
     returningCustomers: 159,
     customerRetentionRate: 67.5,
-    averageLifetimeValue: 850
+    averageLifetimeValue: 850,
   },
   inventoryAlerts: [
     { product: 'Premium Cotton T-Shirt', currentStock: 3, minStock: 5, severity: 'high' },
     { product: 'Summer Dress', currentStock: 8, minStock: 10, severity: 'medium' },
-    { product: 'Casual Sneakers', currentStock: 15, minStock: 20, severity: 'low' }
+    { product: 'Casual Sneakers', currentStock: 15, minStock: 20, severity: 'low' },
   ],
   paymentMethods: [
     { method: 'M-Pesa', percentage: 45, amount: 56250 },
     { method: 'Credit Card', percentage: 35, amount: 43750 },
     { method: 'Cash', percentage: 15, amount: 18750 },
-    { method: 'Bank Transfer', percentage: 5, amount: 6250 }
+    { method: 'Bank Transfer', percentage: 5, amount: 6250 },
   ],
   recentOrders: [
     { id: 'ORD-001', customer: 'John Doe', amount: 2500, status: 'completed', time: '2 hours ago' },
-    { id: 'ORD-002', customer: 'Jane Smith', amount: 1800, status: 'processing', time: '3 hours ago' },
-    { id: 'ORD-003', customer: 'Mike Wilson', amount: 4200, status: 'shipped', time: '5 hours ago' },
-    { id: 'ORD-004', customer: 'Sarah Brown', amount: 750, status: 'pending', time: '6 hours ago' }
-  ]
+    {
+      id: 'ORD-002',
+      customer: 'Jane Smith',
+      amount: 1800,
+      status: 'processing',
+      time: '3 hours ago',
+    },
+    {
+      id: 'ORD-003',
+      customer: 'Mike Wilson',
+      amount: 4200,
+      status: 'shipped',
+      time: '5 hours ago',
+    },
+    { id: 'ORD-004', customer: 'Sarah Brown', amount: 750, status: 'pending', time: '6 hours ago' },
+  ],
 }
 
 type Props = AnalyticsDashboardBlockType
@@ -72,12 +90,12 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
   title = 'Sales Analytics',
   dateRange = 'last_30_days',
   widgets = [],
-//   permissions,
+  //   permissions,
   exportOptions,
 }) => {
   const [selectedDateRange, setSelectedDateRange] = useState<string>(dateRange || 'last_30_days')
   const [refreshing, setRefreshing] = useState(false)
-  
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -85,12 +103,12 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       minimumFractionDigits: 0,
     }).format(price)
   }
-  
+
   const formatPercentage = (value: number, showSign = true) => {
     const sign = showSign ? (value >= 0 ? '+' : '') : ''
     return `${sign}${value.toFixed(1)}%`
   }
-  
+
   const getWidgetSize = (size: string) => {
     switch (size) {
       case 'small':
@@ -105,22 +123,22 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
         return 'col-span-2'
     }
   }
-  
+
   const refreshData = async () => {
     setRefreshing(true)
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     setRefreshing(false)
   }
-  
+
   const exportToPDF = () => {
     console.log('Exporting to PDF...')
   }
-  
+
   const exportToCSV = () => {
     console.log('Exporting to CSV...')
   }
-  
+
   const SalesOverviewWidget = () => (
     <Card>
       <CardHeader>
@@ -137,10 +155,14 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
             </div>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground">Revenue</span>
-              <div className={cn(
-                'flex items-center gap-1',
-                mockAnalyticsData.salesOverview.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              )}>
+              <div
+                className={cn(
+                  'flex items-center gap-1',
+                  mockAnalyticsData.salesOverview.revenueGrowth >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400',
+                )}
+              >
                 {mockAnalyticsData.salesOverview.revenueGrowth >= 0 ? (
                   <TrendingUp className="h-3 w-3" />
                 ) : (
@@ -150,17 +172,19 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-2">
-            <div className="text-2xl font-bold">
-              {mockAnalyticsData.salesOverview.totalOrders}
-            </div>
+            <div className="text-2xl font-bold">{mockAnalyticsData.salesOverview.totalOrders}</div>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground">Orders</span>
-              <div className={cn(
-                'flex items-center gap-1',
-                mockAnalyticsData.salesOverview.ordersGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              )}>
+              <div
+                className={cn(
+                  'flex items-center gap-1',
+                  mockAnalyticsData.salesOverview.ordersGrowth >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400',
+                )}
+              >
                 {mockAnalyticsData.salesOverview.ordersGrowth >= 0 ? (
                   <TrendingUp className="h-3 w-3" />
                 ) : (
@@ -170,17 +194,21 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="text-2xl font-bold">
               {formatPrice(mockAnalyticsData.salesOverview.averageOrderValue)}
             </div>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground">AOV</span>
-              <div className={cn(
-                'flex items-center gap-1',
-                mockAnalyticsData.salesOverview.aovGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              )}>
+              <div
+                className={cn(
+                  'flex items-center gap-1',
+                  mockAnalyticsData.salesOverview.aovGrowth >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400',
+                )}
+              >
                 {mockAnalyticsData.salesOverview.aovGrowth >= 0 ? (
                   <TrendingUp className="h-3 w-3" />
                 ) : (
@@ -190,21 +218,25 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="text-2xl font-bold">
               {formatPercentage(mockAnalyticsData.salesOverview.conversionRate, false)}
             </div>
             <div className="flex items-center gap-1 text-sm">
               <span className="text-muted-foreground">Conversion</span>
-              <div className={cn(
-                'flex items-center gap-1',
-                mockAnalyticsData.salesOverview.conversionGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              )}>
+              <div
+                className={cn(
+                  'flex items-center gap-1',
+                  mockAnalyticsData.salesOverview.conversionGrowth >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400',
+                )}
+              >
                 {mockAnalyticsData.salesOverview.conversionGrowth >= 0 ? (
-                   <TrendingUp className="h-3 w-3" />
-                 ) : (
-                   <TrendingDown className="h-3 w-3" />
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
                 )}
                 {formatPercentage(mockAnalyticsData.salesOverview.conversionGrowth)}
               </div>
@@ -214,7 +246,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const TopProductsWidget = () => (
     <Card>
       <CardHeader>
@@ -233,17 +265,19 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
                 </div>
                 <div>
                   <div className="font-medium text-sm">{product.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {product.units} units sold
-                  </div>
+                  <div className="text-xs text-muted-foreground">{product.units} units sold</div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-medium">{formatPrice(product.revenue)}</div>
-                <div className={cn(
-                  'text-xs flex items-center gap-1',
-                  product.growth >= 0 ? 'text-green-600' : 'text-red-600'
-                )}>
+                <div
+                  className={cn(
+                    'text-xs flex items-center gap-1',
+                    product.growth >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400',
+                  )}
+                >
                   {product.growth >= 0 ? (
                     <TrendingUp className="h-3 w-3\" />
                   ) : (
@@ -258,7 +292,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const CustomerAnalyticsWidget = () => (
     <Card>
       <CardHeader>
@@ -277,21 +311,26 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
               <div className="text-sm text-muted-foreground">Total Customers</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {mockAnalyticsData.customerAnalytics.newCustomers}
               </div>
               <div className="text-sm text-muted-foreground">New Customers</div>
             </div>
           </div>
-          
+
           <div>
             <div className="flex justify-between text-sm mb-2">
               <span>Customer Retention</span>
-              <span>{formatPercentage(mockAnalyticsData.customerAnalytics.customerRetentionRate, false)}</span>
+              <span>
+                {formatPercentage(mockAnalyticsData.customerAnalytics.customerRetentionRate, false)}
+              </span>
             </div>
-            <Progress value={mockAnalyticsData.customerAnalytics.customerRetentionRate} className="h-2" />
+            <Progress
+              value={mockAnalyticsData.customerAnalytics.customerRetentionRate}
+              className="h-2"
+            />
           </div>
-          
+
           <div className="text-center">
             <div className="text-lg font-semibold">
               {formatPrice(mockAnalyticsData.customerAnalytics.averageLifetimeValue)}
@@ -302,7 +341,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const InventoryAlertsWidget = () => (
     <Card>
       <CardHeader>
@@ -321,12 +360,20 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
                   {alert.currentStock} in stock (min: {alert.minStock})
                 </div>
               </div>
-              <Badge variant={
-                alert.severity === 'high' ? 'destructive' : 
-                alert.severity === 'medium' ? 'default' : 'secondary'
-              }>
-                {alert.severity === 'high' ? 'Critical' : 
-                 alert.severity === 'medium' ? 'Low' : 'Warning'}
+              <Badge
+                variant={
+                  alert.severity === 'high'
+                    ? 'destructive'
+                    : alert.severity === 'medium'
+                      ? 'default'
+                      : 'secondary'
+                }
+              >
+                {alert.severity === 'high'
+                  ? 'Critical'
+                  : alert.severity === 'medium'
+                    ? 'Low'
+                    : 'Warning'}
               </Badge>
             </div>
           ))}
@@ -334,7 +381,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const PaymentMethodsWidget = () => (
     <Card>
       <CardHeader>
@@ -361,7 +408,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const RecentOrdersWidget = () => (
     <Card>
       <CardHeader>
@@ -392,7 +439,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
       </CardContent>
     </Card>
   )
-  
+
   const getWidgetComponent = (type: string) => {
     switch (type) {
       case 'sales_overview':
@@ -419,16 +466,16 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
         )
     }
   }
-  
-  const enabledWidgets = widgets?.filter(widget => widget.enabled)
-  
+
+  const enabledWidgets = widgets?.filter((widget) => widget.enabled)
+
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <h1 className="text-3xl font-bold">{title}</h1>
-          
+
           <div className="flex items-center gap-3">
             <Select value={selectedDateRange} onValueChange={setSelectedDateRange}>
               <SelectTrigger className="w-40">
@@ -445,23 +492,18 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
                 <SelectItem value="this_year\">This Year</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refreshData}
-              disabled={refreshing}
-            >
+
+            <Button variant="outline" size="sm" onClick={refreshData} disabled={refreshing}>
               <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
             </Button>
-            
+
             {exportOptions?.enablePdfExport && (
               <Button variant="outline" size="sm" onClick={exportToPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 PDF
               </Button>
             )}
-            
+
             {exportOptions?.enableCsvExport && (
               <Button variant="outline" size="sm" onClick={exportToCSV}>
                 <Download className="h-4 w-4 mr-2" />
@@ -470,7 +512,7 @@ const AnalyticsDashboardComponent: React.FC<Props> = ({
             )}
           </div>
         </div>
-        
+
         {/* Widgets Grid */}
         {enabledWidgets && enabledWidgets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

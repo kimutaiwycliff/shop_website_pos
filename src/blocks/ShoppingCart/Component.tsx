@@ -187,8 +187,8 @@ const ShoppingCartComponent: React.FC<Props> = ({
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
-              <ShoppingCart className="h-12 w-12 text-gray-400" />
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <ShoppingCart className="h-12 w-12 text-gray-400 dark:text-gray-500" />
             </div>
             <h2 className="text-2xl font-bold mb-4">{title}</h2>
             <p className="text-muted-foreground mb-6">{emptyCartMessage}</p>
@@ -348,13 +348,15 @@ const ShoppingCartComponent: React.FC<Props> = ({
                 </CardHeader>
                 <CardContent>
                   {appliedPromoCode ? (
-                    <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md\">
-                      <span className="font-medium text-green-700\">{appliedPromoCode}</span>
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md\">
+                      <span className="font-medium text-green-700 dark:text-green-400\">
+                        {appliedPromoCode}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={removePromoCode}
-                        className="text-green-700 hover:text-green-800"
+                        className="text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                       >
                         Remove
                       </Button>
@@ -387,7 +389,7 @@ const ShoppingCartComponent: React.FC<Props> = ({
                 </div>
 
                 {promoDiscount > 0 && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
                     <span>Discount ({appliedPromoCode})</span>
                     <span>-{formatPrice(promoDiscount)}</span>
                   </div>
@@ -400,7 +402,7 @@ const ShoppingCartComponent: React.FC<Props> = ({
                   </span>
                   <span>
                     {shippingCost === 0 ? (
-                      <span className="text-green-600">Free</span>
+                      <span className="text-green-600 dark:text-green-400">Free</span>
                     ) : (
                       formatPrice(shippingCost)
                     )}

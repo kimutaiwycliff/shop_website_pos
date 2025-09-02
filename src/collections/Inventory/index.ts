@@ -9,7 +9,14 @@ export const Inventory: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'productName',
-    defaultColumns: ['productName', 'sku', 'currentStock', 'minStockLevel', 'status', 'lastUpdated'],
+    defaultColumns: [
+      'productName',
+      'sku',
+      'currentStock',
+      'minStockLevel',
+      'status',
+      'lastUpdated',
+    ],
     group: 'Shop',
     description: 'Track inventory levels and stock movements',
   },
@@ -290,7 +297,7 @@ export const Inventory: CollectionConfig = {
             id: data.product,
             depth: 0,
           })
-          
+
           if (product) {
             data.productName = product.title
             data.sku = product.sku
