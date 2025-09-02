@@ -1,27 +1,40 @@
-# Payload Website Template
+# Luxe - Advanced E-commerce & Mapping Platform
 
-This is the official [Payload Website Template](https://github.com/payloadcms/payload/blob/main/templates/website). Use it to power websites, blogs, or portfolios from small to enterprise. This repo includes a fully-working backend, enterprise-grade admin panel, and a beautifully designed, production-ready website.
+A comprehensive e-commerce and geospatial platform built with Payload CMS, Next.js, and modern web technologies. This platform combines enterprise-grade e-commerce functionality with advanced mapping capabilities, perfect for businesses that need both online retail and location-based services.
 
-This template is right for you if you are working on:
+This platform is right for you if you are working on:
 
-- A personal or enterprise-grade website, blog, or portfolio
-- A content publishing platform with a fully featured publication workflow
-- Exploring the capabilities of Payload
+- **E-commerce businesses** with physical locations or delivery services
+- **Retail stores** needing both online and POS (Point of Sale) functionality
+- **Location-based services** requiring geospatial data analysis
+- **Multi-channel businesses** with online, in-store, and mobile sales
+- **Data-driven retail** with advanced analytics and inventory management
 
-Core features:
+## 🚀 Core Features
 
-- [Pre-configured Payload Config](#how-it-works)
-- [Authentication](#users-authentication)
-- [Access Control](#access-control)
-- [Layout Builder](#layout-builder)
-- [Draft Preview](#draft-preview)
-- [Live Preview](#live-preview)
-- [On-demand Revalidation](#on-demand-revalidation)
-- [SEO](#seo)
-- [Search](#search)
-- [Redirects](#redirects)
-- [Jobs and Scheduled Publishing](#jobs-and-scheduled-publish)
-- [Website](#website)
+### E-commerce & POS
+- [Comprehensive Product Management](#e-commerce-collections)
+- [Multi-channel Sales (Online & POS)](#pos-functionality)
+- [Advanced Inventory Management](#inventory-system)
+- [Customer Management & Analytics](#customer-management)
+- [Order Processing & Fulfillment](#order-management)
+- [Shopping Cart & Checkout](#shopping-experience)
+- [Payment Processing Integration](#payments)
+- [Sales Analytics Dashboard](#analytics)
+
+### Geospatial & Mapping
+- [Interactive Maps with MapLibre GL](#mapping-capabilities)
+- [Advanced Geospatial Analysis](#geospatial-analysis)
+- [Shapefile & GeoJSON Support](#file-formats)
+- [Feature Labeling & Clustering](#map-features)
+- [Location-based Services](#location-services)
+
+### Content Management
+- [Page Builder with E-commerce Blocks](#layout-builder)
+- [SEO Optimization](#seo)
+- [Multi-language Support](#internationalization)
+- [Draft Preview & Live Preview](#preview-system)
+- [Asset Management](#media-management)
 
 ## Quick Start
 
@@ -33,288 +46,549 @@ If you have not done so already, you need to have standalone copy of this repo o
 
 #### Method 1 (recommended)
 
-Go to Payload Cloud and [clone this template](https://payloadcms.com/new/clone/website). This will create a new repository on your GitHub account with this template's code which you can then clone to your own machine.
+Clone this repository directly:
+
+```bash
+git clone https://github.com/yourusername/luxe-ecommerce.git
+cd luxe-ecommerce
+```
 
 #### Method 2
 
-Use the `create-payload-app` CLI to clone this template directly to your machine:
+Use the `create-payload-app` CLI and customize:
 
 ```bash
 pnpx create-payload-app my-project -t website
-```
-
-#### Method 3
-
-Use the `git` CLI to clone this template directly to your machine:
-
-```bash
-git clone -n --depth=1 --filter=tree:0 https://github.com/payloadcms/payload my-project && cd my-project && git sparse-checkout set --no-cone templates/website && git checkout && rm -rf .git && git init && git add . && git mv -f templates/website/{.,}* . && git add . && git commit -m "Initial commit"
+# Then add the e-commerce and mapping functionality
 ```
 
 ### Development
 
 1. First [clone the repo](#clone) if you have not done so already
-1. `cd my-project && cp .env.example .env` to copy the example environment variables
+1. `cd luxe-ecommerce && cp .env.example .env` to copy the example environment variables
+1. Configure your environment variables (database, payments, etc.)
 1. `pnpm install && pnpm dev` to install dependencies and start the dev server
-1. open `http://localhost:3000` to open the app in your browser
+1. Open `http://localhost:3000` to open the app in your browser
+1. Create your first admin user and explore the e-commerce features
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+That's it! Changes made in `./src` will be reflected in your app. The platform includes sample data for products, categories, and map components. Follow the on-screen instructions to set up your store and configure payment methods.
 
-## How it works
+## 🏗️ Platform Architecture
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+The platform is built with a modern, scalable architecture designed for e-commerce and geospatial applications:
 
-### Collections
+### Tech Stack
+- **Frontend**: Next.js 15.4.4 with React 19.1.0 and App Router
+- **Backend**: Payload CMS 3.54.0 with TypeScript 5.7.3
+- **Database**: PostgreSQL with Drizzle ORM
+- **Styling**: TailwindCSS with shadcn/ui components
+- **Mapping**: MapLibre GL JS with Turf.js for geospatial analysis
+- **File Processing**: Support for shapefiles (.shp.zip) and GeoJSON
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+### E-commerce Collections
 
-- #### Users (Authentication)
+The platform includes comprehensive collections for full e-commerce functionality:
 
-  Users are auth-enabled collections that have access to the admin panel and unpublished content. See [Access Control](#access-control) for more details.
+#### Core Collections
+- **Products**: Complete product management with variants, pricing, inventory tracking
+- **Categories**: Hierarchical product categorization with SEO optimization
+- **Brands**: Brand management with logos, descriptions, and associated products
+- **Orders**: Full order lifecycle management with status tracking
+- **Customers**: Customer profiles with purchase history and preferences
+- **Cart**: Persistent shopping cart functionality across sessions
+- **Inventory**: Real-time stock management with low-stock alerts
+- **Transactions**: Payment processing and financial record keeping
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/main/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+#### Enhanced Features
+- **Product Variants**: Size, color, and custom attribute variations
+- **Pricing Rules**: Bulk discounts, promotional pricing, customer-specific rates
+- **Stock Management**: Multi-location inventory with automatic reorder points
+- **Order Fulfillment**: Shipping integration and tracking capabilities
 
-- #### Posts
+### Mapping & Geospatial Collections
 
-  Posts are used to generate blog posts, news articles, or any other type of content that is published over time. All posts are layout builder enabled so you can generate unique layouts for each post using layout-building blocks, see [Layout Builder](#layout-builder) for more details. Posts are also draft-enabled so you can preview them before publishing them to your website, see [Draft Preview](#draft-preview) for more details.
+#### Map Block Component
+- **MapLibre GL Integration**: High-performance vector map rendering
+- **File Upload Support**: Native shapefile (.shp.zip) and GeoJSON parsing
+- **Geospatial Analysis**: Powered by Turf.js for advanced calculations
+  - Area and length measurements
+  - Point clustering and density analysis
+  - Buffer creation and spatial relationships
+  - Feature labeling based on properties
+- **Interactive Controls**: Zoom, layer toggles, style switching
+- **Responsive Design**: Mobile-optimized with dark mode support
 
-- #### Pages
+### Content Collections
 
-  All pages are layout builder enabled so you can generate unique layouts for each page using layout-building blocks, see [Layout Builder](#layout-builder) for more details. Pages are also draft-enabled so you can preview them before publishing them to your website, see [Draft Preview](#draft-preview) for more details.
+#### Users (Authentication & Authorization)
+- **Multi-role Support**: Admin, Manager, Staff, and Customer roles
+- **Access Control**: Role-based permissions for different platform areas
+- **Customer Accounts**: Self-service account management and order history
 
-- #### Media
+#### Pages & Content
+- **Dynamic Pages**: Layout builder with e-commerce and mapping blocks
+- **Blog/News**: Content marketing with SEO optimization
+- **Product Pages**: Rich product detail pages with media galleries
+- **Landing Pages**: Marketing pages with conversion tracking
 
-  This is the uploads enabled collection used by pages, posts, and projects to contain media like images, videos, downloads, and other assets. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+#### Media Management
+- **Asset Organization**: Hierarchical folder structure for media
+- **Image Optimization**: Automatic resizing and format conversion
+- **Product Media**: Support for multiple product images, videos, and 3D models
+- **Document Storage**: PDFs, specifications, and downloadable content
 
-- #### Categories
-
-  A taxonomy used to group posts together. Categories can be nested inside of one another, for example "News > Technology". See the official [Payload Nested Docs Plugin](https://payloadcms.com/docs/plugins/nested-docs) for more details.
-
-### Globals
+### Global Configuration
 
 See the [Globals](https://payloadcms.com/docs/configuration/globals) docs for details on how to extend this functionality.
 
-- `Header`
+- **Header**: Navigation configuration with mega-menu support for product categories
+- **Footer**: Site footer with store information, policies, and social links
+- **Store Settings**: Global e-commerce configuration (currency, tax rates, shipping)
+- **Payment Settings**: Payment gateway configuration and processing rules
+- **SEO Settings**: Default meta tags, structured data, and analytics integration
 
-  The data required by the header on your front-end like nav links.
+## 🛠️ E-commerce Features
 
-- `Footer`
+### POS Functionality
+- **In-store Sales**: Complete point-of-sale interface for physical locations
+- **Barcode Scanning**: Product lookup and inventory management
+- **Payment Processing**: Multiple payment methods (cash, card, digital wallets)
+- **Receipt Generation**: Digital and printable receipts
+- **Staff Management**: Employee access control and sales tracking
 
-  Same as above but for the footer of your site.
+### Shopping Experience
+- **Product Catalog**: Advanced filtering, search, and categorization
+- **Shopping Cart**: Persistent cart with saved items and quick checkout
+- **Checkout Process**: Streamlined multi-step checkout with guest options
+- **Customer Accounts**: Order history, wishlists, and account management
+- **Mobile Optimization**: Progressive Web App (PWA) capabilities
 
-## Access control
+### Inventory System
+- **Real-time Tracking**: Live inventory updates across all channels
+- **Multi-location Support**: Manage stock across multiple warehouses/stores
+- **Automatic Reordering**: Smart restocking based on sales velocity
+- **Low Stock Alerts**: Automated notifications for inventory management
+- **Supplier Management**: Vendor information and purchase order tracking
 
-Basic access control is setup to limit access to various content based based on publishing status.
+### Analytics & Reporting
+- **Sales Dashboards**: Real-time sales metrics and KPI tracking
+- **Customer Analytics**: Behavior analysis and segmentation
+- **Inventory Reports**: Stock levels, turnover rates, and demand forecasting
+- **Financial Reporting**: Revenue tracking, profit margins, and tax reporting
+- **Performance Metrics**: Conversion rates, average order value, customer lifetime value
 
-- `users`: Users can access the admin panel and create or edit content.
-- `posts`: Everyone can access published posts, but only users can create, update, or delete them.
-- `pages`: Everyone can access published pages, but only users can create, update, or delete them.
+## 🗺️ Mapping & Geospatial Features
 
-For more details on how to extend this functionality, see the [Payload Access Control](https://payloadcms.com/docs/access-control/overview#access-control) docs.
+### Mapping Capabilities
+- **Interactive Maps**: Powered by MapLibre GL JS for smooth, responsive mapping
+- **Multiple Map Styles**: Support for various base map styles and custom themes
+- **Layer Management**: Toggle between different data layers and visualizations
+- **Real-time Updates**: Dynamic data loading and map updates
 
-## Layout Builder
+### Geospatial Analysis
+- **Turf.js Integration**: Advanced spatial analysis and geometric calculations
+- **Area Calculations**: Precise area measurements for polygons and regions
+- **Distance Measurements**: Point-to-point and route distance calculations
+- **Buffer Analysis**: Create buffers around points, lines, and polygons
+- **Clustering**: Automatic point clustering for better data visualization
+- **Spatial Relationships**: Intersection, containment, and proximity analysis
 
-Create unique page layouts for any type of content using a powerful layout builder. This template comes pre-configured with the following layout building blocks:
+### File Format Support
+- **Shapefile Support**: Upload and parse .shp.zip files with all components
+- **GeoJSON**: Native support for GeoJSON format with validation
+- **Client-side Processing**: Fast, secure file processing without server uploads
+- **Data Validation**: Automatic geometry and attribute validation
 
-- Hero
-- Content
-- Media
-- Call To Action
-- Archive
+### Map Features
+- **Feature Labeling**: Dynamic labeling based on feature properties
+- **Custom Styling**: Style features based on attributes and data values
+- **Interactive Popups**: Rich popups with feature information and actions
+- **Drawing Tools**: Create and edit geographic features directly on the map
+- **Export Capabilities**: Export maps and data in various formats
 
-Each block is fully designed and built into the front-end website that comes with this template. See [Website](#website) for more details.
+## 🏪 Layout Builder & Page Components
 
-## Lexical editor
+Create unique page layouts using our comprehensive block system:
 
-A deep editorial experience that allows complete freedom to focus just on writing content without breaking out of the flow with support for Payload blocks, media, links and other features provided out of the box. See [Lexical](https://payloadcms.com/docs/rich-text/overview) docs.
+### E-commerce Blocks
+- **Product Grid**: Responsive product listings with filtering and sorting
+- **Product Card**: Individual product showcase with quick actions
+- **Shopping Cart**: Full-featured cart with quantity updates and totals
+- **Checkout**: Secure, multi-step checkout process
+- **Category Showcase**: Featured category displays with navigation
+- **Brand Spotlight**: Brand-focused content blocks
+- **Customer Reviews**: Product review and rating system
+- **Related Products**: Intelligent product recommendations
 
-## Draft Preview
+### Content Blocks
+- **Hero Sections**: Eye-catching headers with call-to-action buttons
+- **Content Blocks**: Rich text with embedded media and products
+- **Media Galleries**: Image and video galleries with lightbox functionality
+- **Call to Action**: Conversion-focused sections with tracking
+- **Testimonials**: Customer testimonial carousels and grids
+- **FAQ Sections**: Expandable question and answer blocks
 
-All posts and pages are draft-enabled so you can preview them before publishing them to your website. To do this, these collections use [Versions](https://payloadcms.com/docs/configuration/collections#versions) with `drafts` set to `true`. This means that when you create a new post, project, or page, it will be saved as a draft and will not be visible on your website until you publish it. This also means that you can preview your draft before publishing it to your website. To do this, we automatically format a custom URL which redirects to your front-end to securely fetch the draft version of your content.
+### Mapping Blocks
+- **Map Block**: Full-featured interactive maps with data visualization
+- **Location Finder**: Store locator with distance calculation
+- **Service Areas**: Geographic service boundary visualization
+- **Delivery Zones**: Shipping area maps with pricing information
 
-Since the front-end of this template is statically generated, this also means that pages, posts, and projects will need to be regenerated as changes are made to published documents. To do this, we use an `afterChange` hook to regenerate the front-end when a document has changed and its `_status` is `published`.
+## 🔍 Advanced Features
 
-For more details on how to extend this functionality, see the official [Draft Preview Example](https://github.com/payloadcms/payload/tree/examples/draft-preview).
+### Access Control & Security
+- **Role-based Access**: Granular permissions for different user types
+- **Customer Authentication**: Secure customer accounts with password reset
+- **Admin Security**: Multi-factor authentication for admin users
+- **Data Protection**: GDPR compliance and privacy controls
+- **Payment Security**: PCI-compliant payment processing
 
-## Live preview
+### Content Management
+- **Rich Text Editor**: Lexical editor with e-commerce and mapping integrations
+- **SEO Optimization**: Built-in SEO tools with structured data
+- **Multi-language**: Internationalization support for global markets
+- **Draft System**: Preview changes before publishing
+- **Version Control**: Content versioning and rollback capabilities
 
-In addition to draft previews you can also enable live preview to view your end resulting page as you're editing content with full support for SSR rendering. See [Live preview docs](https://payloadcms.com/docs/live-preview/overview) for more details.
+### Performance & Scalability
+- **Edge Caching**: CDN integration for fast global delivery
+- **Image Optimization**: Automatic image compression and WebP conversion
+- **Database Optimization**: Efficient queries and indexing
+- **API Rate Limiting**: Protection against abuse and overload
+- **Background Jobs**: Asynchronous processing for heavy operations
 
-## On-demand Revalidation
+## 📊 Preview & Publishing System
 
-We've added hooks to collections and globals so that all of your pages, posts, footer, or header changes will automatically be updated in the frontend via on-demand revalidation supported by Nextjs.
+### Draft Preview
+All products, pages, and content support draft previews:
+- **Version Control**: Save drafts without affecting live content
+- **Preview URLs**: Secure preview links for stakeholder review
+- **Mobile Preview**: Test content across different device sizes
+- **A/B Testing**: Compare different versions before publishing
 
-> Note: if an image has been changed, for example it's been cropped, you will need to republish the page it's used on in order to be able to revalidate the Nextjs image cache.
+### Live Preview
+- **Real-time Editing**: See changes instantly as you edit
+- **WYSIWYG Experience**: True what-you-see-is-what-you-get editing
+- **Device Simulation**: Preview on mobile, tablet, and desktop
+- **Interactive Testing**: Test functionality in preview mode
 
-## SEO
+### Content Scheduling
+- **Scheduled Publishing**: Set future publish dates for content and products
+- **Seasonal Campaigns**: Automate holiday and promotional content
+- **Product Launches**: Coordinate multi-channel product releases
+- **Content Workflows**: Approval processes for content publishing
 
-This template comes pre-configured with the official [Payload SEO Plugin](https://payloadcms.com/docs/plugins/seo) for complete SEO control from the admin panel. All SEO data is fully integrated into the front-end website that comes with this template. See [Website](#website) for more details.
+## 🚀 Platform Capabilities
 
-## Search
+### Automatic Revalidation
+Smart content delivery with automatic cache invalidation:
+- **Product Updates**: Instant cache clearing when products change
+- **Inventory Sync**: Real-time stock level updates across all channels
+- **Price Changes**: Immediate price updates across the platform
+- **Content Changes**: Automatic page regeneration for content updates
 
-This template also pre-configured with the official [Payload Search Plugin](https://payloadcms.com/docs/plugins/search) to showcase how SSR search features can easily be implemented into Next.js with Payload. See [Website](#website) for more details.
+### SEO & Marketing
+- **Advanced SEO**: Meta tags, structured data, and XML sitemaps
+- **Social Media**: Open Graph and Twitter Card integration
+- **Analytics**: Google Analytics, Facebook Pixel, and custom tracking
+- **Email Marketing**: Newsletter integration and automated campaigns
+- **Affiliate Tracking**: Built-in affiliate and referral systems
 
-## Redirects
+### Search & Navigation
+- **Intelligent Search**: Full-text search with filters and faceting
+- **Autocomplete**: Smart search suggestions and typo tolerance
+- **Category Navigation**: Hierarchical browsing with breadcrumbs
+- **Voice Search**: Voice-activated product search capabilities
+- **Visual Search**: Image-based product discovery
 
-If you are migrating an existing site or moving content to a new URL, you can use the `redirects` collection to create a proper redirect from old URLs to new ones. This will ensure that proper request status codes are returned to search engines and that your users are not left with a broken link. This template comes pre-configured with the official [Payload Redirects Plugin](https://payloadcms.com/docs/plugins/redirects) for complete redirect control from the admin panel. All redirects are fully integrated into the front-end website that comes with this template. See [Website](#website) for more details.
+### Integrations
+- **Payment Gateways**: Stripe, PayPal, Square, and more
+- **Shipping Providers**: FedEx, UPS, DHL integration
+- **Accounting Software**: QuickBooks, Xero synchronization
+- **Marketing Tools**: Mailchimp, Klaviyo, HubSpot connectivity
+- **Social Commerce**: Instagram, Facebook Shop integration
 
-## Jobs and Scheduled Publish
+## 🌐 Frontend Application
 
-We have configured [Scheduled Publish](https://payloadcms.com/docs/versions/drafts#scheduled-publish) which uses the [jobs queue](https://payloadcms.com/docs/jobs-queue/jobs) in order to publish or unpublish your content on a scheduled time. The tasks are run on a cron schedule and can also be run as a separate instance if needed.
+A modern, high-performance e-commerce frontend built with cutting-edge technologies:
 
-> Note: When deployed on Vercel, depending on the plan tier, you may be limited to daily cron only.
+### Technology Stack
+- **Framework**: Next.js 15.4.4 with App Router
+- **UI Library**: React 19.1.0 with TypeScript 5.7.3
+- **Styling**: TailwindCSS with shadcn/ui components
+- **Mapping**: MapLibre GL JS with Turf.js for geospatial analysis
+- **Forms**: React Hook Form with validation
+- **State Management**: Zustand for client-side state
+- **Authentication**: NextAuth.js integration
 
-## Website
+### Frontend Features
+- **E-commerce Interface**: Complete shopping experience from browse to checkout
+- **POS Interface**: Touch-optimized point-of-sale for in-store operations
+- **Admin Dashboard**: Comprehensive business management interface
+- **Analytics Dashboards**: Real-time sales and performance metrics
+- **Mapping Interface**: Interactive maps with geospatial analysis tools
+- **Mobile Optimization**: Progressive Web App (PWA) capabilities
+- **Dark Mode**: System-aware dark/light theme switching
+- **Accessibility**: WCAG 2.1 AA compliance
+- **Performance**: Core Web Vitals optimization
 
-This template includes a beautifully designed, production-ready front-end built with the [Next.js App Router](https://nextjs.org), served right alongside your Payload app in a instance. This makes it so that you can deploy both your backend and website where you need it.
+### Customer Experience
+- **Responsive Design**: Optimized for all device sizes
+- **Fast Loading**: Optimized images and lazy loading
+- **Offline Support**: Service worker for offline browsing
+- **Search**: Intelligent product search with filters
+- **Wishlist**: Save favorite products across sessions
+- **Recently Viewed**: Track and display browsing history
+- **Social Login**: Sign in with Google, Facebook, Apple
 
-Core features:
+### Admin Experience
+- **Intuitive Interface**: Clean, modern admin panel
+- **Bulk Operations**: Efficient batch editing and updates
+- **Import/Export**: CSV and Excel file processing
+- **Reporting**: Detailed sales and inventory reports
+- **User Management**: Customer and staff account administration
 
-- [Next.js App Router](https://nextjs.org)
-- [TypeScript](https://www.typescriptlang.org)
-- [React Hook Form](https://react-hook-form.com)
-- [Payload Admin Bar](https://github.com/payloadcms/payload/tree/main/packages/admin-bar)
-- [TailwindCSS styling](https://tailwindcss.com/)
-- [shadcn/ui components](https://ui.shadcn.com/)
-- User Accounts and Authentication
-- Fully featured blog
-- Publication workflow
-- Dark mode
-- Pre-made layout building blocks
-- SEO
-- Search
-- Redirects
-- Live preview
+### Performance Optimization
 
-### Cache
+#### Caching Strategy
+Optimized for high-traffic e-commerce environments:
+- **CDN Integration**: Global content delivery for fast page loads
+- **Database Caching**: Redis integration for frequently accessed data
+- **Image Optimization**: Next.js Image component with WebP conversion
+- **API Caching**: Intelligent caching of product and inventory data
+- **Static Generation**: Pre-built pages for better SEO and performance
 
-Although Next.js includes a robust set of caching strategies out of the box, Payload Cloud proxies and caches all files through Cloudflare using the [Official Cloud Plugin](https://www.npmjs.com/package/@payloadcms/payload-cloud). This means that Next.js caching is not needed and is disabled by default. If you are hosting your app outside of Payload Cloud, you can easily reenable the Next.js caching mechanisms by removing the `no-store` directive from all fetch requests in `./src/app/_api` and then removing all instances of `export const dynamic = 'force-dynamic'` from pages files, such as `./src/app/(pages)/[slug]/page.tsx`. For more details, see the official [Next.js Caching Docs](https://nextjs.org/docs/app/building-your-application/caching).
+#### Production Considerations
+- **Security**: HTTPS, CSP headers, and input validation
+- **Monitoring**: Application performance monitoring and error tracking
+- **Scalability**: Horizontal scaling support for high traffic
+- **Backup**: Automated database backups and disaster recovery
+- **Compliance**: GDPR, PCI DSS, and accessibility standards
 
-## Development
+## 🚀 Getting Started
 
-To spin up this example locally, follow the [Quick Start](#quick-start). Then [Seed](#seed) the database with a few pages, posts, and projects.
+To spin up this e-commerce platform locally, follow the [Quick Start](#quick-start) guide above. Then configure your store settings and add your first products.
 
-### Working with Postgres
+### Environment Configuration
 
-Postgres and other SQL-based databases follow a strict schema for managing your data. In comparison to our MongoDB adapter, this means that there's a few extra steps to working with Postgres.
-
-Note that often times when making big schema changes you can run the risk of losing data if you're not manually migrating it.
-
-#### Local development
-
-Ideally we recommend running a local copy of your database so that schema updates are as fast as possible. By default the Postgres adapter has `push: true` for development environments. This will let you add, modify and remove fields and collections without needing to run any data migrations.
-
-If your database is pointed to production you will want to set `push: false` otherwise you will risk losing data or having your migrations out of sync.
-
-#### Migrations
-
-[Migrations](https://payloadcms.com/docs/database/migrations) are essentially SQL code versions that keeps track of your schema. When deploy with Postgres you will need to make sure you create and then run your migrations.
-
-Locally create a migration
+Create your `.env` file with the following required variables:
 
 ```bash
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/luxe_ecommerce"
+
+# Authentication
+PAYLOAD_SECRET="your-secret-key-here"
+NEXTAUTH_SECRET="your-nextauth-secret"
+
+# Payment Processing
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_PUBLISHABLE_KEY="pk_test_..."
+PAYPAL_CLIENT_ID="your-paypal-client-id"
+
+# Email Configuration
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"
+
+# Cloud Storage (Optional)
+AWS_ACCESS_KEY_ID="your-aws-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret"
+S3_BUCKET="your-s3-bucket"
+
+# Analytics (Optional)
+GOOGLE_ANALYTICS_ID="GA-XXXXX"
+FACEBOOK_PIXEL_ID="your-pixel-id"
+```
+
+### Initial Setup
+
+1. **Database Setup**: Run migrations and seed initial data
+   ```bash
+   pnpm payload migrate
+   pnpm payload seed
+   ```
+
+2. **Create Admin User**: Set up your first admin account
+   ```bash
+   pnpm payload create-first-user
+   ```
+
+3. **Configure Store**: Access admin panel and configure:
+   - Store information and branding
+   - Payment gateway settings
+   - Shipping zones and rates
+   - Tax configuration
+   - Email templates
+
+### Database Management
+
+#### Working with PostgreSQL
+The platform uses PostgreSQL for reliable, scalable data management:
+
+- **Schema Management**: Automatic migrations for database changes
+- **Data Integrity**: Foreign key constraints and validation
+- **Performance**: Optimized indexes for fast queries
+- **Backup**: Automated daily backups with point-in-time recovery
+
+#### Development vs Production
+- **Development**: Use `push: true` for rapid schema iteration
+- **Production**: Use migrations for controlled, safe deployments
+
+#### Migration Commands
+```bash
+# Create a new migration
 pnpm payload migrate:create
-```
 
-This creates the migration files you will need to push alongside with your new configuration.
-
-On the server after building and before running `pnpm start` you will want to run your migrations
-
-```bash
+# Run pending migrations
 pnpm payload migrate
+
+# Reset database (development only)
+pnpm payload migrate:reset
+
+# Check migration status
+pnpm payload migrate:status
 ```
 
-This command will check for any migrations that have not yet been run and try to run them and it will keep a record of migrations that have been run in the database.
+### Sample Data
 
-### Docker
-
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
-
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
-
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
-
-### Seed
-
-To seed the database with a few pages, posts, and projects you can click the 'seed database' link from the admin panel.
-
-The seed script will also create a demo user for demonstration purposes only:
-
-- Demo Author
-  - Email: `demo-author@payloadcms.com`
-  - Password: `password`
-
-> NOTICE: seeding the database is destructive because it drops your current database to populate a fresh one from the seed template. Only run this command if you are starting a new project or can afford to lose your current data.
-
-## Production
-
-To run Payload in production, you need to build and start the Admin panel. To do so, follow these steps:
-
-1. Invoke the `next build` script by running `pnpm build` or `npm run build` in your project root. This creates a `.next` directory with a production-ready admin bundle.
-1. Finally run `pnpm start` or `npm run start` to run Node in production and serve Payload from the `.build` directory.
-1. When you're ready to go live, see Deployment below for more details.
-
-### Deploying to Payload Cloud
-
-The easiest way to deploy your project is to use [Payload Cloud](https://payloadcms.com/new/import), a one-click hosting solution to deploy production-ready instances of your Payload apps directly from your GitHub repo.
-
-### Deploying to Vercel
-
-This template can also be deployed to Vercel for free. You can get started by choosing the Vercel DB adapter during the setup of the template or by manually installing and configuring it:
+The platform includes comprehensive sample data:
 
 ```bash
-pnpm add @payloadcms/db-vercel-postgres
+# Seed the database with sample data
+pnpm payload seed
 ```
 
-```ts
+This creates:
+- **Sample Products**: Electronics, clothing, and accessories
+- **Product Categories**: Hierarchical category structure
+- **Sample Customers**: Test customer accounts
+- **Order History**: Example orders and transactions
+- **Geographic Data**: Sample store locations and service areas
+- **Demo Users**:
+  - Admin: `admin@luxe.com` / `password`
+  - Manager: `manager@luxe.com` / `password`
+  - Customer: `customer@luxe.com` / `password`
+
+> ⚠️ **Warning**: Seeding is destructive and will replace existing data. Only use on development environments or fresh installations.
+
+### Docker Development
+
+Quick setup using Docker for consistent development environments:
+
+```bash
+# Clone and setup
+git clone https://github.com/yourusername/luxe-ecommerce.git
+cd luxe-ecommerce
+
+# Copy environment variables
+cp .env.example .env
+
+# Start with Docker
+docker-compose up -d
+
+# Initialize database
+docker-compose exec app pnpm payload migrate
+docker-compose exec app pnpm payload seed
+```
+
+This provides:
+- **PostgreSQL Database**: Production-like database environment
+- **Redis Cache**: For session storage and caching
+- **File Storage**: Local volume for media uploads
+- **Hot Reload**: Automatic restart on code changes
+
+## 🚀 Production Deployment
+
+### Build Process
+
+```bash
+# Install dependencies
+pnpm install
+
+# Run database migrations
+pnpm payload migrate
+
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+### Production Checklist
+
+#### Security
+- [ ] Configure HTTPS with SSL certificates
+- [ ] Set up Content Security Policy (CSP) headers
+- [ ] Enable rate limiting and DDoS protection
+- [ ] Configure firewall rules
+- [ ] Set up database backups
+- [ ] Enable audit logging
+
+#### Performance
+- [ ] Configure CDN for static assets
+- [ ] Set up database connection pooling
+- [ ] Enable Redis caching
+- [ ] Configure image optimization
+- [ ] Set up monitoring and alerting
+
+#### E-commerce Specific
+- [ ] Configure payment gateways (production keys)
+- [ ] Set up SSL for payment processing
+- [ ] Configure shipping providers
+- [ ] Set up inventory alerts
+- [ ] Configure email templates
+- [ ] Test order fulfillment workflow
+
+### Deployment Options
+
+#### Payload Cloud (Recommended)
+One-click deployment with managed infrastructure:
+- Automatic scaling and load balancing
+- Built-in CDN and database backups
+- SSL certificates and security monitoring
+- Global edge deployment
+
+#### Vercel Deployment
+Perfect for Next.js applications:
+
+```bash
+# Install Vercel adapter
+pnpm add @payloadcms/db-vercel-postgres @payloadcms/storage-vercel-blob
+```
+
+```typescript
 // payload.config.ts
 import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
-
-export default buildConfig({
-  // ...
-  db: vercelPostgresAdapter({
-    pool: {
-      connectionString: process.env.POSTGRES_URL || '',
-    },
-  }),
-  // ...
-```
-
-We also support Vercel's blob storage:
-
-```bash
-pnpm add @payloadcms/storage-vercel-blob
-```
-
-```ts
-// payload.config.ts
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 
 export default buildConfig({
-  // ...
+  db: vercelPostgresAdapter({
+    pool: { connectionString: process.env.POSTGRES_URL },
+  }),
   plugins: [
     vercelBlobStorage({
-      collections: {
-        [Media.slug]: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN || '',
+      collections: { media: true },
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     }),
   ],
-  // ...
+})
 ```
 
-There is also a simplified [one click deploy](https://github.com/payloadcms/payload/tree/templates/with-vercel-postgres) to Vercel should you need it.
+#### Self-hosting Options
+- **DigitalOcean App Platform**: Managed container deployment
+- **AWS EC2 + RDS**: Full control with managed database
+- **Google Cloud Run**: Serverless container deployment
+- **Traditional VPS**: Ubuntu/CentOS with PM2 process management
 
-### Self-hosting
-
-Before deploying your app, you need to:
-
-1. Ensure your app builds and serves in production. See [Production](#production) for more details.
-2. You can then deploy Payload as you would any other Node.js or Next.js application either directly on a VPS, DigitalOcean's Apps Platform, via Coolify or more. More guides coming soon.
-
-You can also deploy your app manually, check out the [deployment documentation](https://payloadcms.com/docs/production/deployment) for full details.
+#### Infrastructure Requirements
+- **CPU**: 2+ cores for production workloads
+- **RAM**: 4GB minimum, 8GB+ recommended
+- **Storage**: SSD with 50GB+ available space
+- **Database**: PostgreSQL 12+ with connection pooling
+- **Cache**: Redis for session storage and caching
 
 ## Questions
 
