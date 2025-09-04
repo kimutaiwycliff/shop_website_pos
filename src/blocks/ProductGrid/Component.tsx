@@ -69,7 +69,7 @@ const ProductGridComponent: React.FC<Props> = ({
     if (result.collection === 'products') {
       setIsSearching(true)
       try {
-        // Fetch full product data
+        // Use API endpoint for client-side fetching to avoid server-only imports
         const response = await fetch(`/api/products/${result.id}`)
         if (response.ok) {
           const productData = await response.json()
@@ -87,9 +87,8 @@ const ProductGridComponent: React.FC<Props> = ({
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     setIsSearching(true)
     try {
-      const response = await fetch(
-        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}`,
-      )
+      // Use API endpoint for client-side fetching to avoid server-only imports
+      const response = await fetch(`/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`)
       if (response.ok) {
         const data = await response.json()
         if (data.docs && data.docs.length > 0) {
@@ -648,4 +647,5 @@ const ProductGridComponent: React.FC<Props> = ({
   )
 }
 
+export { ProductGridComponent }
 export default ProductGridComponent

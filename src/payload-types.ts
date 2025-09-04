@@ -989,6 +989,7 @@ export interface Product {
               | 'XL'
               | 'XXL'
               | 'XXXL'
+              | '26'
               | '28'
               | '30'
               | '32'

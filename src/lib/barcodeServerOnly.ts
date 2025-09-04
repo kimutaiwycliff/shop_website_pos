@@ -4,8 +4,13 @@ import { generateUPCAFromSKU, validateUPCA } from './barcodeUtils'
 
 // Dynamic import for canvas to avoid client-side bundling
 async function getCanvas() {
-  const { createCanvas } = await import('canvas')
-  return createCanvas
+  try {
+    const { createCanvas } = await import('canvas')
+    return createCanvas
+  } catch (error) {
+    console.warn('Canvas package not available:', error)
+    return null
+  }
 }
 
 /**
@@ -20,12 +25,19 @@ export async function generateBarcodeImageServer(
     fontSize?: number
     textMargin?: number
   },
-): Promise<Buffer> {
+): Promise<Buffer | null> {
   const { width = 2, height = 100, fontSize = 20, textMargin = 2 } = options || {}
 
   try {
     // Dynamic import of canvas for server-only usage
     const createCanvas = await getCanvas()
+
+    // If canvas is not available, return null instead of throwing
+    if (!createCanvas) {
+      console.warn('Canvas package not available, skipping barcode generation')
+      return null
+    }
+
     const canvas = createCanvas(400, 200)
 
     JsBarcode(canvas, barcode, {
@@ -44,7 +56,8 @@ export async function generateBarcodeImageServer(
     return canvas.toBuffer('image/png')
   } catch (error) {
     console.error('Error generating barcode on server:', error)
-    throw new Error('Failed to generate barcode image on server')
+    console.warn('Barcode generation failed, continuing without barcode image')
+    return null
   }
 }
 
@@ -70,6 +83,12 @@ export async function createBarcodeMedia(
     // Generate barcode image
     const imageBuffer = await generateBarcodeImageServer(barcode)
 
+    // If barcode generation failed (canvas not available), continue without barcode image
+    if (!imageBuffer) {
+      console.warn('Skipping barcode image creation due to missing canvas dependency')
+      return null
+    }
+
     // Create a filename
     const filename = `barcode-${sku.replace(/[^a-zA-Z0-9]/g, '-')}-${barcode}.png`
 
@@ -91,6 +110,7 @@ export async function createBarcodeMedia(
     return media.id
   } catch (error) {
     console.error('Error creating barcode media:', error)
+    console.warn('Continuing without barcode media creation')
     return null
   }
 }

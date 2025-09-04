@@ -139,19 +139,17 @@ const POSComponent: React.FC<Props> = ({
   const fetchProducts = useCallback(async (query?: string) => {
     setIsLoadingProducts(true)
     try {
+      // Use API endpoint for client-side fetching to avoid server-only imports
       const searchParams = new URLSearchParams()
       if (query) {
-        searchParams.append('where[or][0][title][contains]', query)
-        searchParams.append('where[or][1][sku][contains]', query)
-        searchParams.append('where[or][2][barcode][contains]', query)
+        searchParams.append('q', query)
       }
       searchParams.append('limit', '100')
-      searchParams.append('depth', '2')
-
+      
       const response = await fetch(`/api/products?${searchParams.toString()}`)
       if (response.ok) {
-        const data = await response.json()
-        setProducts(data.docs || [])
+        const result = await response.json()
+        setProducts(result.docs || [])
       } else {
         console.error('Failed to fetch products:', response.statusText)
       }
@@ -165,9 +163,8 @@ const POSComponent: React.FC<Props> = ({
   // Find product by barcode
   const findProductByBarcode = useCallback(async (barcode: string) => {
     try {
-      const response = await fetch(
-        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`,
-      )
+      // Use API endpoint for client-side fetching to avoid server-only imports
+      const response = await fetch(`/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`)
       if (response.ok) {
         const data = await response.json()
         return data.docs?.[0] || null
@@ -183,7 +180,7 @@ const POSComponent: React.FC<Props> = ({
     if (result.collection === 'products') {
       setIsSearching(true)
       try {
-        // Fetch full product data
+        // Use API endpoint for client-side fetching to avoid server-only imports
         const response = await fetch(`/api/products/${result.id}`)
         if (response.ok) {
           const productData = await response.json()

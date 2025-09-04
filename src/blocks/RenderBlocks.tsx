@@ -10,7 +10,7 @@ import { MediaBlock } from '@/blocks/MediaBlock/Component'
 import { DataTableBlock } from './DataTable/Component'
 import { CategoryShowCaseBlock } from './CategoryShowCase/Component'
 import { ProductShowcaseBlock } from './ProductShowcase/Component'
-import ProductGridComponent from './ProductGrid/Component'
+import { ProductGridServer } from './ProductGrid/ProductGridServer'
 import ShoppingCartComponent from './ShoppingCart/Component'
 import CheckoutComponent from './Checkout/Component'
 import POSComponent from './POS/Component'
@@ -26,7 +26,7 @@ const blockComponents = {
   dataTable: DataTableBlock,
   categoryShowcase: CategoryShowCaseBlock,
   productShowcase: ProductShowcaseBlock,
-  productGrid: ProductGridComponent,
+  productGrid: ProductGridServer,
   shoppingCart: ShoppingCartComponent,
   checkout: CheckoutComponent,
   pos: POSComponent,

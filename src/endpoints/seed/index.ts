@@ -9,15 +9,31 @@ import { imageHero1 } from './image-hero-1'
 import { post1 } from './post-1'
 import { post2 } from './post-2'
 import { post3 } from './post-3'
+import { luxeBrands } from './brands-seed'
+import { luxeProducts } from './products-seed'
+import { luxeCustomers } from './customers-seed'
+import { luxeOrders } from './orders-seed'
+import { luxeInventory } from './inventory-seed'
+import { luxeTransactions } from './transactions-seed'
+import { luxeCartItems } from './cart-seed'
+import { luxeCategories } from './categories-seed'
 
 const collections: CollectionSlug[] = [
-  'categories',
-  'media',
-  'pages',
-  'posts',
-  'forms',
+  // Delete dependent collections first to avoid foreign key constraint violations
+  'cart',
+  'transactions', 
+  'inventory',
+  'orders',
+  'products',
+  'customers',
+  'brands',
   'form-submissions',
+  'posts',
+  'pages',
+  'forms',
   'search',
+  'categories',
+  'media', // Media last due to foreign key references
 ]
 const globals: GlobalSlug[] = ['header', 'footer']
 
@@ -41,20 +57,20 @@ export const seed = async ({
   payload.logger.info(`— Clearing collections and globals...`)
 
   // clear the database
-  await Promise.all(
-    globals.map((global) =>
-      payload.updateGlobal({
-        slug: global,
-        data: {
-          navItems: [],
-        },
-        depth: 0,
-        context: {
-          disableRevalidate: true,
-        },
-      }),
-    ),
-  )
+  // await Promise.all(
+  //   globals.map((global) =>
+  //     payload.updateGlobal({
+  //       slug: global,
+  //       data: {
+  //         navItems: [],
+  //       },
+  //       depth: 0,
+  //       context: {
+  //         disableRevalidate: true,
+  //       },
+  //     }),
+  //   ),
+  // )
 
   await Promise.all(
     collections.map((collection) => payload.db.deleteMany({ collection, req, where: {} })),
@@ -95,113 +111,130 @@ export const seed = async ({
     ),
   ])
 
-  const [demoAuthor, image1Doc, image2Doc, image3Doc, imageHomeDoc] = await Promise.all([
-    payload.create({
-      collection: 'users',
-      data: {
-        name: 'Demo Author',
-        email: 'demo-author@example.com',
-        password: 'password',
-      },
-    }),
-    payload.create({
-      collection: 'media',
-      data: image1,
-      file: image1Buffer,
-    }),
-    payload.create({
-      collection: 'media',
-      data: image2,
-      file: image2Buffer,
-    }),
-    payload.create({
-      collection: 'media',
-      data: image2,
-      file: image3Buffer,
-    }),
-    payload.create({
-      collection: 'media',
-      data: imageHero1,
-      file: hero1Buffer,
-    }),
+  const [demoAuthor, image1Doc, image2Doc, image3Doc, imageHomeDoc, ...categoryDocs] =
+    await Promise.all([
+      payload.create({
+        collection: 'users',
+        data: {
+          name: 'Demo Author',
+          email: 'demo-author@example.com',
+          password: 'password',
+        },
+      }),
+      payload.create({
+        collection: 'media',
+        data: image1,
+        file: image1Buffer,
+      }),
+      payload.create({
+        collection: 'media',
+        data: image2,
+        file: image2Buffer,
+      }),
+      payload.create({
+        collection: 'media',
+        data: image2,
+        file: image3Buffer,
+      }),
+      payload.create({
+        collection: 'media',
+        data: imageHero1,
+        file: hero1Buffer,
+      }),
 
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'Technology',
-        breadcrumbs: [
-          {
-            label: 'Technology',
-            url: '/technology',
-          },
-        ],
-      },
-    }),
+      // Create categories for boutique
+      ...luxeCategories().map((categoryData) =>
+        payload.create({
+          collection: 'categories',
+          data: categoryData,
+        }),
+      ),
+    ])
 
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'News',
-        breadcrumbs: [
-          {
-            label: 'News',
-            url: '/news',
-          },
-        ],
-      },
-    }),
+  payload.logger.info(`— Seeding boutique brands...`)
 
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'Finance',
-        breadcrumbs: [
-          {
-            label: 'Finance',
-            url: '/finance',
-          },
-        ],
-      },
-    }),
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'Design',
-        breadcrumbs: [
-          {
-            label: 'Design',
-            url: '/design',
-          },
-        ],
-      },
-    }),
+  // Create brands
+  const brandDocs = await Promise.all(
+    luxeBrands({ logo: image1Doc }).map((brandData) =>
+      payload.create({
+        collection: 'brands',
+        data: brandData,
+      }),
+    ),
+  )
 
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'Software',
-        breadcrumbs: [
-          {
-            label: 'Software',
-            url: '/software',
-          },
-        ],
-      },
-    }),
+  payload.logger.info(`— Seeding boutique products...`)
 
-    payload.create({
-      collection: 'categories',
-      data: {
-        title: 'Engineering',
-        breadcrumbs: [
-          {
-            label: 'Engineering',
-            url: '/engineering',
-          },
-        ],
-      },
-    }),
-  ])
+  // Create products
+  const productDocs = await Promise.all(
+    luxeProducts({ image: image1Doc, categories: categoryDocs, brands: brandDocs }).map(
+      (productData) =>
+        payload.create({
+          collection: 'products',
+          data: productData,
+        }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding customers...`)
+
+  // Create customers
+  const customerDocs = await Promise.all(
+    luxeCustomers().map((customerData) =>
+      payload.create({
+        collection: 'customers',
+        data: customerData,
+      }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding orders...`)
+
+  // Create orders
+  const orderDocs = await Promise.all(
+    luxeOrders({ customers: customerDocs, products: productDocs }).map((orderData) =>
+      payload.create({
+        collection: 'orders',
+        data: orderData,
+      }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding inventory...`)
+
+  // Create inventory
+  await Promise.all(
+    luxeInventory({ products: productDocs }).map((inventoryData) =>
+      payload.create({
+        collection: 'inventory',
+        data: inventoryData,
+      }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding transactions...`)
+
+  // Create transactions
+  await Promise.all(
+    luxeTransactions({ orders: orderDocs }).map((transactionData) =>
+      payload.create({
+        collection: 'transactions',
+        data: transactionData,
+      }),
+    ),
+  )
+
+  payload.logger.info(`— Seeding cart items...`)
+
+  // Create cart items
+  await Promise.all(
+    luxeCartItems({ customers: customerDocs, products: productDocs }).map((cartData) =>
+      payload.create({
+        collection: 'cart',
+        data: cartData,
+      }),
+    ),
+  )
 
   payload.logger.info(`— Seeding posts...`)
 
@@ -290,6 +323,20 @@ export const seed = async ({
           {
             link: {
               type: 'custom',
+              label: 'Shop',
+              url: '/shop',
+            },
+          },
+          {
+            link: {
+              type: 'custom',
+              label: 'Brands',
+              url: '/brands',
+            },
+          },
+          {
+            link: {
+              type: 'custom',
               label: 'Posts',
               url: '/posts',
             },
@@ -310,8 +357,26 @@ export const seed = async ({
     payload.updateGlobal({
       slug: 'footer',
       data: {
+        copyright: '© 2024 Luxe Boutique. All rights reserved.',
         navItems: [
           {
+            title: 'Privacy Policy',
+            link: {
+              type: 'custom',
+              label: 'Privacy Policy',
+              url: '/privacy',
+            },
+          },
+          {
+            title: 'Terms & Conditions',
+            link: {
+              type: 'custom',
+              label: 'Terms & Conditions',
+              url: '/terms',
+            },
+          },
+          {
+            title: 'Admin',
             link: {
               type: 'custom',
               label: 'Admin',
@@ -319,19 +384,12 @@ export const seed = async ({
             },
           },
           {
+            title: 'Source Code',
             link: {
               type: 'custom',
               label: 'Source Code',
               newTab: true,
               url: 'https://github.com/payloadcms/payload/tree/main/templates/website',
-            },
-          },
-          {
-            link: {
-              type: 'custom',
-              label: 'Payload',
-              newTab: true,
-              url: 'https://payloadcms.com/',
             },
           },
         ],

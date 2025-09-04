@@ -16,6 +16,7 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 import { authenticated } from '@/access/authenticated'
+import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { CollectionConfig } from 'payload'
 import { generateUPCAFromSKU } from '@/lib/barcodeUtils'
 
@@ -28,7 +29,7 @@ export const Products: CollectionConfig = {
   access: {
     create: authenticated,
     delete: authenticated,
-    read: authenticated,
+    read: authenticatedOrPublished,
     update: authenticated,
   },
   admin: {
@@ -243,6 +244,7 @@ export const Products: CollectionConfig = {
                     { label: 'Double XL (XXL)', value: 'XXL' },
                     { label: 'Triple XL (XXXL)', value: 'XXXL' },
                     // Numeric sizes
+                    { label: '26', value: '26' },
                     { label: '28', value: '28' },
                     { label: '30', value: '30' },
                     { label: '32', value: '32' },
