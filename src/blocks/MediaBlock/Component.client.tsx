@@ -4,12 +4,12 @@ import type { StaticImageData } from 'next/image'
 
 import { cn } from '@/utilities/ui'
 import React, { useEffect, useRef } from 'react'
+import RichText from '@/components/RichText'
 import { gsap } from 'gsap'
 
 import type { MediaBlock as MediaBlockProps } from '@/payload-types'
 
-import { Media } from '@/components/Media'
-import { MediaBlockClient } from '@/blocks/MediaBlock/Component.client'
+import { Media } from '../../components/Media'
 
 type Props = MediaBlockProps & {
   breakout?: boolean
@@ -21,7 +21,7 @@ type Props = MediaBlockProps & {
   disableInnerContainer?: boolean
 }
 
-export const MediaBlock: React.FC<Props> = (props) => {
+export const MediaBlockClient: React.FC<Props> = (props) => {
   const {
     captionClassName,
     className,
@@ -30,7 +30,6 @@ export const MediaBlock: React.FC<Props> = (props) => {
     media,
     staticImage,
     disableInnerContainer,
-    blockType = 'mediaBlock',
   } = props
 
   const mediaRef = useRef<HTMLDivElement>(null)
@@ -56,5 +55,40 @@ export const MediaBlock: React.FC<Props> = (props) => {
     }
   }, [])
 
-  return <MediaBlockClient {...props} blockType={blockType} />
+  return (
+    <div
+      ref={mediaRef}
+      className={cn(
+        'py-8',
+        {
+          container: enableGutter,
+        },
+        className,
+      )}
+    >
+      {(media || staticImage) && (
+        <Media
+          imgClassName={cn(
+            'border border-border rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl',
+            imgClassName,
+          )}
+          resource={media}
+          src={staticImage}
+        />
+      )}
+      {caption && (
+        <div
+          className={cn(
+            'mt-6 transition-all duration-300',
+            {
+              container: !disableInnerContainer,
+            },
+            captionClassName,
+          )}
+        >
+          <RichText data={caption} enableGutter={false} />
+        </div>
+      )}
+    </div>
+  )
 }

@@ -10,21 +10,45 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import Autoplay from 'embla-carousel-autoplay'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import { gsap } from 'gsap'
+
 export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
   title,
   subtitle,
   categories,
 }) => {
   const plugin = useRef(Autoplay({ delay: 2000, stopOnInteraction: true }))
+  const showcaseRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (showcaseRef.current && headerRef.current) {
+      // Initial state
+      gsap.set(headerRef.current, { opacity: 0, y: 30 })
+      gsap.set(carouselRef.current, { opacity: 0, y: 30 })
+
+      // Animate in with stagger
+      gsap.to([headerRef.current, carouselRef.current], {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: 'power2.out',
+      })
+    }
+  }, [])
 
   return (
-      <section className="py-12 sm:py-20">
-        <div className="container max-w-screen-2xl">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-center mb-12">
-            {title}
-          </h2>
-          {subtitle && <p className="text-lg md:text-xl text-center">{subtitle}</p>}
+    <section ref={showcaseRef} className="py-12 sm:py-20">
+      <div className="container max-w-screen-2xl">
+        <div ref={headerRef} className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">{title}</h2>
+          {subtitle && <p className="text-lg md:text-xl">{subtitle}</p>}
+        </div>
+
+        <div ref={carouselRef}>
           <Carousel
             opts={{
               align: 'start',
@@ -53,7 +77,7 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
                     <div className="p-1">
                       <Link
                         href={`/category/${categorySlug}`}
-                        className="relative aspect-video md:aspect-[4/3] group overflow-hidden rounded-lg block"
+                        className="relative aspect-video md:aspect-[4/3] group overflow-hidden rounded-lg block transition-all duration-300 hover:scale-105"
                       >
                         {item.customImage && typeof item.customImage === 'object' && (
                           <Media
@@ -65,7 +89,7 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
                         )}
 
                         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                          <h3 className="text-2xl font-bold font-headline text-white">
+                          <h3 className="text-2xl font-bold font-headline text-white transition-all duration-300 group-hover:text-primary">
                             {item.customTitle || categoryTitle}
                           </h3>
                         </div>
@@ -75,10 +99,11 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
                 )
               })}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <CarouselPrevious className="transition-all duration-300 hover:scale-110" />
+            <CarouselNext className="transition-all duration-300 hover:scale-110" />
           </Carousel>
         </div>
-      </section>
+      </div>
+    </section>
   )
 }
