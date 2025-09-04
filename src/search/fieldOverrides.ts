@@ -58,4 +58,81 @@ export const searchFields: Field[] = [
       },
     ],
   },
+  // Product-specific fields
+  {
+    name: 'sku',
+    type: 'text',
+    index: true,
+    admin: {
+      readOnly: true,
+    },
+  },
+  {
+    name: 'barcode',
+    type: 'text',
+    index: true,
+    admin: {
+      readOnly: true,
+    },
+  },
+  {
+    name: 'price',
+    type: 'number',
+    admin: {
+      readOnly: true,
+    },
+  },
+  {
+    name: 'originalPrice',
+    type: 'number',
+    admin: {
+      readOnly: true,
+    },
+  },
+  {
+    name: 'brand',
+    type: 'group',
+    admin: {
+      readOnly: true,
+    },
+    fields: [
+      {
+        name: 'name',
+        type: 'text',
+      },
+      {
+        name: 'slug',
+        type: 'text',
+      },
+    ],
+  },
+  {
+    name: 'status',
+    type: 'select',
+    options: [
+      { label: 'Draft', value: 'draft' },
+      { label: 'Published', value: 'published' },
+      { label: 'Archived', value: 'archived' },
+    ],
+    admin: {
+      readOnly: true,
+    },
+  },
+  {
+    name: 'inStock',
+    type: 'number',
+    admin: {
+      readOnly: true,
+    },
+  },
+  // Search priority for better relevance
+  {
+    name: 'searchPriority',
+    type: 'number',
+    defaultValue: 1,
+    admin: {
+      readOnly: true,
+      description: 'Higher values appear first in search results',
+    },
+  },
 ]

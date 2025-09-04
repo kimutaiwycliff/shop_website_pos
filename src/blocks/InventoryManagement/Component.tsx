@@ -47,6 +47,8 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import BarcodeScanner from '../../components/BarcodeScanner'
+import { AdvancedSearch } from '@/components/AdvancedSearch'
+import { SearchResult } from '@/lib/advancedSearch'
 
 // Mock inventory data
 const mockInventoryData = [
@@ -139,6 +141,42 @@ const InventoryManagementComponent: React.FC<Props> = ({
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
   const [barcodeInput, setBarcodeInput] = useState('')
   const [scannedProduct, setScannedProduct] = useState<any>(null)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  // Handle advanced search result selection
+  const handleSearchResult = useCallback(
+    async (result: SearchResult) => {
+      if (result.collection === 'products') {
+        setIsSearching(true)
+        try {
+          // Find the inventory item for this product
+          const inventoryItem = inventoryData.find((item) => item.product.id === result.id)
+          if (inventoryItem) {
+            // Scroll to and highlight the item in the table
+            setSelectedItems([inventoryItem.id])
+            // You could also open the adjustment dialog automatically
+            setSelectedItemForAdjustment(inventoryItem.id)
+            setShowStockAdjustment(true)
+          } else {
+            // Product not found in inventory
+            alert(`Product "${result.title}" not found in inventory`)
+          }
+        } catch (error) {
+          console.error('Error finding inventory item:', error)
+        } finally {
+          setIsSearching(false)
+        }
+      }
+    },
+    [inventoryData],
+  )
+
+  // Clear search results
+  const clearSearch = useCallback(() => {
+    setSearchResults([])
+    setSearchQuery('')
+  }, [])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -355,22 +393,34 @@ const InventoryManagementComponent: React.FC<Props> = ({
           <CardContent className="p-4">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search products by name, SKU, or barcode..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+                {/* Advanced Search */}
+                <AdvancedSearch
+                  config={{
+                    collections: ['products'],
+                    enableFuzzySearch: true,
+                    searchPriority: true,
+                    limit: 50,
+                    debounceMs: 200,
+                    filters: {
+                      // Only show products that are in inventory
+                      'inventory.exists': true,
+                    },
+                  }}
+                  placeholder="Search inventory by product name, SKU, barcode..."
+                  enableFilters={false}
+                  enableSuggestions={true}
+                  onResultSelect={handleSearchResult}
+                  maxResults={10}
+                  className="mb-2"
+                />
 
-                  {/* Barcode Scanner Button */}
+                {/* Barcode Scanner Integration */}
+                <div className="flex gap-2">
                   <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <ScanLine className="h-4 w-4" />
+                      <Button variant="outline" size="sm">
+                        <ScanLine className="h-4 w-4 mr-2" />
+                        Scan Barcode
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md">
@@ -385,18 +435,18 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       />
                     </DialogContent>
                   </Dialog>
-                </div>
 
-                {/* Manual Barcode Input */}
-                <div className="relative mt-2">
-                  <Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Or enter barcode manually..."
-                    value={barcodeInput}
-                    onChange={(e) => setBarcodeInput(e.target.value)}
-                    onKeyDown={handleBarcodeInput}
-                    className="pl-10"
-                  />
+                  {/* Manual Barcode Input */}
+                  <div className="relative flex-1">
+                    <Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Or enter barcode manually..."
+                      value={barcodeInput}
+                      onChange={(e) => setBarcodeInput(e.target.value)}
+                      onKeyDown={handleBarcodeInput}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
               </div>
 

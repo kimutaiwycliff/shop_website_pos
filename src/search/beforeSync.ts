@@ -19,6 +19,40 @@ export const beforeSyncWithSearch: BeforeSync = async ({ req, originalDoc, searc
     categories: [],
   }
 
+  // Handle product-specific fields
+  if (collection === 'products') {
+    const productDoc = originalDoc as any
+    modifiedDoc.sku = productDoc.sku
+    modifiedDoc.barcode = productDoc.barcode
+    modifiedDoc.price = productDoc.price
+    modifiedDoc.originalPrice = productDoc.originalPrice
+    modifiedDoc.status = productDoc.status
+    modifiedDoc.inStock = productDoc.inStock
+
+    // Set search priority based on product status and availability
+    let priority = 1
+    if (productDoc.status === 'published' && productDoc.inStock > 0) {
+      priority = 3 // Highest priority for available products
+    } else if (productDoc.status === 'published') {
+      priority = 2 // Medium priority for published but out of stock
+    }
+    modifiedDoc.searchPriority = priority
+
+    // Handle brand information
+    if (productDoc.brand && typeof productDoc.brand === 'object') {
+      modifiedDoc.brand = {
+        name: productDoc.brand.name,
+        slug: productDoc.brand.slug,
+      }
+    }
+  }
+
+  // Handle brand-specific fields
+  if (collection === 'brands') {
+    const brandDoc = originalDoc as any
+    modifiedDoc.searchPriority = brandDoc.isActive ? 2 : 1
+  }
+
   if (categories && Array.isArray(categories) && categories.length > 0) {
     const populatedCategories: { id: string | number; title: string }[] = []
     for (const category of categories) {

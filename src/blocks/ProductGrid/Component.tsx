@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { ProductGridBlock as ProductGridBlockType } from '@/payload-types'
 import { Product, Brand } from '@/payload-types'
 import { Button } from '@/components/ui/button'
@@ -16,10 +16,14 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { Grid, List, Filter, Heart, Eye, ShoppingCart, Star } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Grid, List, Filter, Heart, Eye, ShoppingCart, Star, Search, ScanLine } from 'lucide-react'
 import { cn } from '@/utilities/ui'
 import Link from 'next/link'
 import Image from 'next/image'
+import { SearchResult } from '@/lib/advancedSearch'
+import { AdvancedSearch } from '@/components/AdvancedSearch'
+import BarcodeScanner from '../../components/BarcodeScanner'
 
 type Props = {
   products?: Product[]
@@ -42,7 +46,7 @@ const ProductGridComponent: React.FC<Props> = ({
   spacing = 'normal',
   products: initialProducts = [],
 }) => {
-  const [products] = useState<Product[]>(initialProducts)
+  const [products, setProducts] = useState<Product[]>(initialProducts)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('name')
   const [priceRange, setPriceRange] = useState([0, 10000])
@@ -50,12 +54,67 @@ const ProductGridComponent: React.FC<Props> = ({
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showFiltersPanel, setShowFiltersPanel] = useState(false)
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [searchMode, setSearchMode] = useState<'text' | 'barcode'>('text')
+  const [searchResults, setSearchResults] = useState<Product[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   const itemsPerPage = limit || 12
 
+  // Use search results when available, otherwise use initial products
+  const currentProducts = searchResults.length > 0 ? searchResults : products
+
+  // Enhanced search functionality
+  const handleSearchResult = useCallback(async (result: SearchResult) => {
+    if (result.collection === 'products') {
+      setIsSearching(true)
+      try {
+        // Fetch full product data
+        const response = await fetch(`/api/products/${result.id}`)
+        if (response.ok) {
+          const productData = await response.json()
+          setSearchResults([productData])
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+  }, [])
+
+  // Handle barcode scan
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    setIsSearching(true)
+    try {
+      const response = await fetch(
+        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}`,
+      )
+      if (response.ok) {
+        const data = await response.json()
+        if (data.docs && data.docs.length > 0) {
+          setSearchResults(data.docs)
+          setShowBarcodeScanner(false)
+        } else {
+          alert(`No product found with barcode: ${barcode}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error searching by barcode:', error)
+      alert('Error searching for product')
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  const clearSearch = useCallback(() => {
+    setSearchResults([])
+    setCurrentPage(1)
+  }, [])
+
   const categories = useMemo(() => {
     const cats = new Set<string>()
-    products.forEach((product) => {
+    currentProducts.forEach((product) => {
       if (product.categories) {
         product.categories.forEach((cat) => {
           if (typeof cat === 'object' && 'title' in cat && cat.title) {
@@ -65,11 +124,11 @@ const ProductGridComponent: React.FC<Props> = ({
       }
     })
     return Array.from(cats)
-  }, [products])
+  }, [currentProducts])
 
   const brands = useMemo(() => {
     const brandSet = new Set<string>()
-    products.forEach((product) => {
+    currentProducts.forEach((product) => {
       if (
         product.brand &&
         typeof product.brand === 'object' &&
@@ -80,11 +139,11 @@ const ProductGridComponent: React.FC<Props> = ({
       }
     })
     return Array.from(brandSet)
-  }, [products])
+  }, [currentProducts])
 
   // Filter and sort products
   const processedProducts = useMemo(() => {
-    let filtered = [...products]
+    let filtered = [...currentProducts]
 
     // Apply filters
     if (selectedCategories.length > 0) {
@@ -129,7 +188,7 @@ const ProductGridComponent: React.FC<Props> = ({
     })
 
     return filtered
-  }, [products, selectedCategories, selectedBrands, priceRange, sortBy])
+  }, [currentProducts, selectedCategories, selectedBrands, priceRange, sortBy])
 
   // Paginate products
   const paginatedProducts = useMemo(() => {
@@ -319,7 +378,93 @@ const ProductGridComponent: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Toolbar */}
+        {/* Advanced Search Bar */}
+        <div className="mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1">
+              <AdvancedSearch
+                config={{
+                  collections: ['products'],
+                  enableFuzzySearch: true,
+                  searchPriority: true,
+                  limit: 20,
+                }}
+                placeholder="Search products by name, SKU, barcode, or brand..."
+                enableFilters={true}
+                enableSuggestions={true}
+                onResultSelect={handleSearchResult}
+                maxResults={20}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-md border">
+                <Button
+                  variant={searchMode === 'text' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setSearchMode('text')}
+                  className="rounded-r-none"
+                >
+                  <Search className="h-4 w-4 mr-1" />
+                  Text
+                </Button>
+                <Button
+                  variant={searchMode === 'barcode' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => {
+                    setSearchMode('barcode')
+                    setShowBarcodeScanner(true)
+                  }}
+                  className="rounded-l-none"
+                >
+                  <ScanLine className="h-4 w-4 mr-1" />
+                  Scan
+                </Button>
+              </div>
+
+              {(searchResults.length > 0 || isSearching) && (
+                <Button variant="outline" size="sm" onClick={clearSearch} disabled={isSearching}>
+                  Clear Search
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Search Results Info */}
+          {searchResults.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <Badge variant="secondary">
+                {searchResults.length} search result{searchResults.length !== 1 ? 's' : ''}
+              </Badge>
+              <span>•</span>
+              <button onClick={clearSearch} className="text-primary hover:underline">
+                Show all products
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Barcode Scanner Dialog */}
+        {showBarcodeScanner && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Scan Product Barcode</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowBarcodeScanner(false)}>
+                  ×
+                </Button>
+              </div>
+              <BarcodeScanner
+                onScan={handleBarcodeScan}
+                onError={(error: string) => console.error('Scanner error:', error)}
+                isActive={showBarcodeScanner}
+                enableTorch={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Filters and View Controls */}
         {(showFilters || showSorting) && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="flex items-center gap-4">
@@ -333,7 +478,7 @@ const ProductGridComponent: React.FC<Props> = ({
                   Filters
                 </Button>
               )}
-              <div className="flex items-center gap-2\">
+              <div className="flex items-center gap-2">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
@@ -352,17 +497,17 @@ const ProductGridComponent: React.FC<Props> = ({
             </div>
 
             {showSorting && (
-              <div className="flex items-center gap-2\">
-                <Label htmlFor="sort\">Sort by:</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="sort">Sort by:</Label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]\" id="sort\">
+                  <SelectTrigger className="w-[180px]" id="sort">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="name\">Name</SelectItem>
-                    <SelectItem value="price-low\">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high\">Price: High to Low</SelectItem>
-                    <SelectItem value="newest\">Newest First</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="newest">Newest First</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -370,17 +515,17 @@ const ProductGridComponent: React.FC<Props> = ({
           </div>
         )}
 
-        <div className="flex gap-6\">
+        <div className="flex gap-6">
           {/* Filters Sidebar */}
           {showFilters && showFiltersPanel && (
-            <div className="w-64 shrink-0 space-y-6\">
+            <div className="w-64 shrink-0 space-y-6">
               {/* Categories */}
               {categories.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-3\">Categories</h3>
-                  <div className="space-y-2\">
+                  <h3 className="font-medium mb-3">Categories</h3>
+                  <div className="space-y-2">
                     {categories.map((category) => (
-                      <div key={category} className="flex items-center space-x-2\">
+                      <div key={category} className="flex items-center space-x-2">
                         <Checkbox
                           id={`cat-${category}`}
                           checked={selectedCategories.includes(category)}
@@ -394,7 +539,7 @@ const ProductGridComponent: React.FC<Props> = ({
                             }
                           }}
                         />
-                        <Label htmlFor={`cat-${category}`} className="text-sm\">
+                        <Label htmlFor={`cat-${category}`} className="text-sm">
                           {category}
                         </Label>
                       </div>
@@ -406,10 +551,10 @@ const ProductGridComponent: React.FC<Props> = ({
               {/* Brands */}
               {brands.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-3\">Brands</h3>
-                  <div className="space-y-2\">
+                  <h3 className="font-medium mb-3">Brands</h3>
+                  <div className="space-y-2">
                     {brands.map((brand) => (
-                      <div key={brand} className="flex items-center space-x-2\">
+                      <div key={brand} className="flex items-center space-x-2">
                         <Checkbox
                           id={`brand-${brand}`}
                           checked={selectedBrands.includes(brand)}
@@ -421,7 +566,7 @@ const ProductGridComponent: React.FC<Props> = ({
                             }
                           }}
                         />
-                        <Label htmlFor={`brand-${brand}`} className="text-sm\">
+                        <Label htmlFor={`brand-${brand}`} className="text-sm">
                           {brand}
                         </Label>
                       </div>
@@ -432,17 +577,17 @@ const ProductGridComponent: React.FC<Props> = ({
 
               {/* Price Range */}
               <div>
-                <h3 className="font-medium mb-3\">Price Range</h3>
-                <div className="space-y-3\">
+                <h3 className="font-medium mb-3">Price Range</h3>
+                <div className="space-y-3">
                   <Slider
                     value={priceRange}
                     onValueChange={setPriceRange}
                     min={0}
                     max={10000}
                     step={100}
-                    className="w-full\"
+                    className="w-full"
                   />
-                  <div className="flex items-center justify-between text-sm text-muted-foreground\">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>{formatPrice(priceRange[0])}</span>
                     <span>{formatPrice(priceRange[1])}</span>
                   </div>
@@ -452,7 +597,7 @@ const ProductGridComponent: React.FC<Props> = ({
           )}
 
           {/* Products Grid */}
-          <div className="flex-1\">
+          <div className="flex-1">
             {paginatedProducts.length > 0 ? (
               <div className={viewMode === 'grid' ? getColumnClasses() : 'space-y-4'}>
                 {paginatedProducts.map((product) => (

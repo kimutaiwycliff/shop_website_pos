@@ -1819,10 +1819,19 @@ export interface Search {
   id: number;
   title?: string | null;
   priority?: number | null;
-  doc: {
-    relationTo: 'posts';
-    value: number | Post;
-  };
+  doc:
+    | {
+        relationTo: 'posts';
+        value: number | Post;
+      }
+    | {
+        relationTo: 'products';
+        value: number | Product;
+      }
+    | {
+        relationTo: 'brands';
+        value: number | Brand;
+      };
   slug?: string | null;
   meta?: {
     title?: string | null;
@@ -1837,6 +1846,20 @@ export interface Search {
         id?: string | null;
       }[]
     | null;
+  sku?: string | null;
+  barcode?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  brand?: {
+    name?: string | null;
+    slug?: string | null;
+  };
+  status?: ('draft' | 'published' | 'archived') | null;
+  inStock?: number | null;
+  /**
+   * Higher values appear first in search results
+   */
+  searchPriority?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3157,6 +3180,19 @@ export interface SearchSelect<T extends boolean = true> {
         title?: T;
         id?: T;
       };
+  sku?: T;
+  barcode?: T;
+  price?: T;
+  originalPrice?: T;
+  brand?:
+    | T
+    | {
+        name?: T;
+        slug?: T;
+      };
+  status?: T;
+  inStock?: T;
+  searchPriority?: T;
   updatedAt?: T;
   createdAt?: T;
 }

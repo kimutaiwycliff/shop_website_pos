@@ -42,6 +42,8 @@ import {
 import { cn } from '@/utilities/ui'
 import Image from 'next/image'
 import BarcodeScanner from '../../components/BarcodeScanner'
+import { AdvancedSearch } from '@/components/AdvancedSearch'
+import { SearchResult } from '@/lib/advancedSearch'
 
 interface POSItem {
   id: string
@@ -107,6 +109,8 @@ const POSComponent: React.FC<Props> = ({
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
   const [products, setProducts] = useState<any[]>([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Mock products data - replace with real API call
@@ -174,7 +178,30 @@ const POSComponent: React.FC<Props> = ({
     return null
   }, [])
 
-  // Handle barcode scan from camera scanner
+  // Handle advanced search result selection
+  const handleSearchResult = useCallback(async (result: SearchResult) => {
+    if (result.collection === 'products') {
+      setIsSearching(true)
+      try {
+        // Fetch full product data
+        const response = await fetch(`/api/products/${result.id}`)
+        if (response.ok) {
+          const productData = await response.json()
+          addToCart(productData)
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+  }, [])
+
+  // Clear search results
+  const clearSearch = useCallback(() => {
+    setSearchResults([])
+    setSearchQuery('')
+  }, [])
   const handleBarcodeScan = useCallback(
     async (barcode: string) => {
       console.log('Barcode scanned:', barcode)
@@ -401,20 +428,25 @@ const POSComponent: React.FC<Props> = ({
       <div className="flex h-[calc(100vh-70px)]">
         {/* Left Panel - Products */}
         <div className="flex-1 p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-          {/* Search */}
+          {/* Advanced Search */}
           <div className="space-y-2">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  ref={searchInputRef}
-                  placeholder="Search products, SKU, or scan barcode..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <AdvancedSearch
+              config={{
+                collections: ['products'],
+                enableFuzzySearch: true,
+                searchPriority: true,
+                limit: 50,
+                debounceMs: 200,
+              }}
+              placeholder="Search products, SKU, barcode, or brand..."
+              enableFilters={false}
+              enableSuggestions={true}
+              onResultSelect={handleSearchResult}
+              maxResults={10}
+              className="w-full"
+            />
 
+            <div className="flex items-center gap-2">
               {enableBarcodeScanning && (
                 <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
                   <DialogTrigger asChild>
