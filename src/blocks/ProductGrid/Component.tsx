@@ -267,6 +267,10 @@ const ProductGridComponent: React.FC<Props> = ({
             <p className="text-sm text-muted-foreground mt-1">{(product.brand as Brand).name}</p>
           )}
 
+          {cardStyle === 'detailed' && product.sku && (
+            <p className="text-xs text-muted-foreground mt-1 font-mono">SKU: {product.sku}</p>
+          )}
+
           <div className="flex items-center gap-2 mt-2">
             <span className="font-semibold text-lg">{formatPrice(product.price || 0)}</span>
             {hasDiscount && (

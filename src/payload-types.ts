@@ -1022,9 +1022,13 @@ export interface Product {
    */
   sku: string;
   /**
-   * Product barcode number
+   * Product barcode number (will be auto-generated if empty)
    */
   barcode?: string | null;
+  /**
+   * Auto-generated UPC-A barcode image (generated from SKU)
+   */
+  barcodeImage?: (number | null) | Media;
   /**
    * Your cost for this product
    */
@@ -2663,6 +2667,7 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   sku?: T;
   barcode?: T;
+  barcodeImage?: T;
   costPrice?: T;
   price?: T;
   originalPrice?: T;

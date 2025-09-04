@@ -17,6 +17,7 @@ import {
 import { slugField } from '@/fields/slug'
 import { authenticated } from '@/access/authenticated'
 import { CollectionConfig } from 'payload'
+import { generateUPCAFromSKU } from '@/lib/barcodeUtils'
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -307,11 +308,21 @@ export const Products: CollectionConfig = {
                   label: 'Barcode (UPC/EAN)',
                   admin: {
                     width: '50%',
-                    description: 'Product barcode number',
+                    description: 'Product barcode number (will be auto-generated if empty)',
                     placeholder: 'e.g., 123456789012',
                   },
                 },
               ],
+            },
+            {
+              name: 'barcodeImage',
+              type: 'upload',
+              relationTo: 'media',
+              label: 'Barcode Image',
+              admin: {
+                description: 'Auto-generated UPC-A barcode image (generated from SKU)',
+                readOnly: true,
+              },
             },
             {
               type: 'group',
@@ -586,7 +597,42 @@ export const Products: CollectionConfig = {
           data.discountPercentage = 0
         }
 
+        // Generate barcode if not provided
+        if (data.sku && !data.barcode) {
+          data.barcode = generateUPCAFromSKU(data.sku)
+        }
+
         return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, req, operation }) => {
+        // Generate barcode image after product creation/update (server-side only)
+        if (
+          typeof window === 'undefined' &&
+          doc.sku &&
+          (!doc.barcodeImage || operation === 'create')
+        ) {
+          try {
+            // Dynamic import for server-only functionality
+            const { createBarcodeMedia } = await import('@/lib/barcodeServerOnly')
+
+            const barcodeImageId = await createBarcodeMedia(req.payload, doc.sku, doc.title)
+
+            if (barcodeImageId) {
+              // Update the product with the barcode image
+              await req.payload.update({
+                collection: 'products',
+                id: doc.id,
+                data: {
+                  barcodeImage: barcodeImageId,
+                } as any, // Temporary type assertion to handle the missing field in generated types
+              })
+            }
+          } catch (error) {
+            console.error('Error generating barcode image:', error)
+          }
+        }
       },
     ],
   },

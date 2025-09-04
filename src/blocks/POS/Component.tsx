@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { POSBlock as POSBlockType } from '@/payload-types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,9 +37,11 @@ import {
   Camera,
   Lock,
   Unlock,
+  ScanLine,
 } from 'lucide-react'
 import { cn } from '@/utilities/ui'
 import Image from 'next/image'
+import BarcodeScanner from '../../components/BarcodeScanner'
 
 interface POSItem {
   id: string
@@ -49,6 +51,10 @@ interface POSItem {
     price: number
     sku: string
     barcode?: string
+    barcodeImage?: {
+      url: string
+      alt: string
+    }
     images?: Array<{
       image: {
         url: string
@@ -98,10 +104,13 @@ const POSComponent: React.FC<Props> = ({
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<string | null>(null)
   const [barcodeInput, setBarcodeInput] = useState('')
   const [isLocked, setIsLocked] = useState(cashierRequired)
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [products, setProducts] = useState<any[]>([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Mock products data
-  const [products] = useState([
+  // Mock products data - replace with real API call
+  const [mockProducts] = useState([
     {
       id: '1',
       title: 'Premium Cotton T-Shirt',
@@ -122,12 +131,91 @@ const POSComponent: React.FC<Props> = ({
     },
   ])
 
-  const filteredProducts = products.filter(
-    (product) =>
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode?.includes(searchQuery),
+  // Fetch products from the database
+  const fetchProducts = useCallback(async (query?: string) => {
+    setIsLoadingProducts(true)
+    try {
+      const searchParams = new URLSearchParams()
+      if (query) {
+        searchParams.append('where[or][0][title][contains]', query)
+        searchParams.append('where[or][1][sku][contains]', query)
+        searchParams.append('where[or][2][barcode][contains]', query)
+      }
+      searchParams.append('limit', '100')
+      searchParams.append('depth', '2')
+
+      const response = await fetch(`/api/products?${searchParams.toString()}`)
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data.docs || [])
+      } else {
+        console.error('Failed to fetch products:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error)
+    } finally {
+      setIsLoadingProducts(false)
+    }
+  }, [])
+
+  // Find product by barcode
+  const findProductByBarcode = useCallback(async (barcode: string) => {
+    try {
+      const response = await fetch(
+        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`,
+      )
+      if (response.ok) {
+        const data = await response.json()
+        return data.docs?.[0] || null
+      }
+    } catch (error) {
+      console.error('Error finding product by barcode:', error)
+    }
+    return null
+  }, [])
+
+  // Handle barcode scan from camera scanner
+  const handleBarcodeScan = useCallback(
+    async (barcode: string) => {
+      console.log('Barcode scanned:', barcode)
+
+      // First check if product is already in the filtered list
+      let product = products.find((p: any) => p.barcode === barcode)
+
+      // If not found, search the database
+      if (!product) {
+        product = await findProductByBarcode(barcode)
+      }
+
+      if (product) {
+        addToCart(product)
+        // Show success feedback
+        setShowBarcodeScanner(false)
+      } else {
+        // Show error - product not found
+        alert(`Product with barcode ${barcode} not found`)
+      }
+    },
+    [products, findProductByBarcode],
   )
+
+  // Load products on component mount
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length >= 2) {
+        fetchProducts(searchQuery)
+      } else if (searchQuery.length === 0) {
+        fetchProducts()
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, fetchProducts])
 
   const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal - item.discount), 0)
   const taxRate = taxSettings?.defaultTaxRate || 16
@@ -236,12 +324,9 @@ const POSComponent: React.FC<Props> = ({
     console.log('Printing receipt...')
   }
 
-  const handleBarcodeInput = (e: React.KeyboardEvent) => {
+  const handleBarcodeInput = async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && barcodeInput) {
-      const product = products.find((p) => p.barcode === barcodeInput)
-      if (product) {
-        addToCart(product)
-      }
+      await handleBarcodeScan(barcodeInput)
       setBarcodeInput('')
     }
   }
@@ -318,15 +403,38 @@ const POSComponent: React.FC<Props> = ({
         <div className="flex-1 p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
           {/* Search */}
           <div className="space-y-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Search products, SKU, or scan barcode..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search products, SKU, or scan barcode..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {enableBarcodeScanning && (
+                <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <ScanLine className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Scan Barcode</DialogTitle>
+                    </DialogHeader>
+                    <BarcodeScanner
+                      onScan={handleBarcodeScan}
+                      onError={(error: string) => console.error('Scanner error:', error)}
+                      isActive={showBarcodeScanner}
+                      enableTorch={true}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
 
             {enableBarcodeScanning && (
@@ -345,42 +453,61 @@ const POSComponent: React.FC<Props> = ({
 
           {/* Products Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 overflow-auto">
-            {filteredProducts.map((product) => (
-              <Card
-                key={product.id}
-                className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                onClick={() => addToCart(product)}
-              >
-                <CardContent className="p-3">
-                  {product.images?.[0] && (
-                    <div className="aspect-square relative mb-2">
-                      <Image
-                        src={product.images[0].image.url}
-                        alt={product.images[0].image.alt}
-                        fill
-                        className="object-cover rounded"
-                      />
+            {isLoadingProducts ? (
+              <div className="col-span-full text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-sm text-muted-foreground">Loading products...</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <p className="text-muted-foreground">No products found</p>
+                {searchQuery && (
+                  <p className="text-sm text-muted-foreground mt-1">Try a different search term</p>
+                )}
+              </div>
+            ) : (
+              products.map((product) => (
+                <Card
+                  key={product.id}
+                  className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                  onClick={() => addToCart(product)}
+                >
+                  <CardContent className="p-3">
+                    {product.images?.[0] && (
+                      <div className="aspect-square relative mb-2">
+                        <Image
+                          src={product.images[0].image.url}
+                          alt={product.images[0].image.alt}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      </div>
+                    )}
+                    <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-1">SKU: {product.sku}</p>
+                    {product.barcode && (
+                      <p className="text-xs text-muted-foreground mb-1 font-mono">
+                        Barcode: {product.barcode}
+                      </p>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-sm">{formatPrice(product.price)}</span>
+                      <Badge
+                        variant={product.inStock > 0 ? 'default' : 'destructive'}
+                        className={cn(
+                          'text-xs',
+                          product.inStock > 0
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
+                        )}
+                      >
+                        {product.inStock}
+                      </Badge>
                     </div>
-                  )}
-                  <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-1">SKU: {product.sku}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm">{formatPrice(product.price)}</span>
-                    <Badge
-                      variant={product.inStock > 0 ? 'default' : 'destructive'}
-                      className={cn(
-                        'text-xs',
-                        product.inStock > 0
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
-                      )}
-                    >
-                      {product.inStock}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
 

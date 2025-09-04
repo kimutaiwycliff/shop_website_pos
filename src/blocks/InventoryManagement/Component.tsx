@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { InventoryManagementBlock as InventoryManagementBlockType } from '@/payload-types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -42,8 +42,11 @@ import {
   Edit,
   History,
   Truck,
+  ScanLine,
+  Camera,
 } from 'lucide-react'
 import Image from 'next/image'
+import BarcodeScanner from '../../components/BarcodeScanner'
 
 // Mock inventory data
 const mockInventoryData = [
@@ -53,6 +56,7 @@ const mockInventoryData = [
       id: 'prod-1',
       title: 'Premium Cotton T-Shirt',
       sku: 'TSH-001',
+      barcode: '123456789012',
       images: [{ image: { url: '/api/media/tshirt.jpg', alt: 'T-Shirt' } }],
       price: 2500,
     },
@@ -73,6 +77,7 @@ const mockInventoryData = [
       id: 'prod-2',
       title: 'Denim Jeans',
       sku: 'JNS-001',
+      barcode: '123456789013',
       images: [{ image: { url: '/api/media/jeans.jpg', alt: 'Jeans' } }],
       price: 4500,
     },
@@ -93,6 +98,7 @@ const mockInventoryData = [
       id: 'prod-3',
       title: 'Summer Dress',
       sku: 'DRS-001',
+      barcode: '123456789014',
       images: [{ image: { url: '/api/media/dress.jpg', alt: 'Dress' } }],
       price: 3500,
     },
@@ -130,6 +136,9 @@ const InventoryManagementComponent: React.FC<Props> = ({
   const [adjustmentReason, setAdjustmentReason] = useState('')
   const [showReorderDialog, setShowReorderDialog] = useState(false)
   const [reorderItems, setReorderItems] = useState<string[]>([])
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [barcodeInput, setBarcodeInput] = useState('')
+  const [scannedProduct, setScannedProduct] = useState<any>(null)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -143,7 +152,8 @@ const InventoryManagementComponent: React.FC<Props> = ({
     const filtered = inventoryData.filter((item) => {
       const matchesSearch =
         item.product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+        item.product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.product.barcode && item.product.barcode.includes(searchQuery))
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -250,6 +260,33 @@ const InventoryManagementComponent: React.FC<Props> = ({
     console.log('Exporting inventory data...')
   }
 
+  // Barcode scanning functionality
+  const handleBarcodeScan = useCallback(
+    (barcode: string) => {
+      console.log('Barcode scanned:', barcode)
+
+      // Find the product by barcode
+      const foundItem = inventoryData.find((item) => item.product.barcode === barcode)
+
+      if (foundItem) {
+        setScannedProduct(foundItem)
+        setSelectedItemForAdjustment(foundItem.id)
+        setShowStockAdjustment(true)
+        setShowBarcodeScanner(false)
+      } else {
+        alert(`Product with barcode ${barcode} not found in inventory`)
+      }
+    },
+    [inventoryData],
+  )
+
+  const handleBarcodeInput = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && barcodeInput) {
+      handleBarcodeScan(barcodeInput)
+      setBarcodeInput('')
+    }
+  }
+
   return (
     <section className="py-12">
       <div className="container mx-auto px-4">
@@ -318,12 +355,46 @@ const InventoryManagementComponent: React.FC<Props> = ({
           <CardContent className="p-4">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products by name, SKU, or barcode..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Barcode Scanner Button */}
+                  <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <ScanLine className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Scan Product Barcode</DialogTitle>
+                      </DialogHeader>
+                      <BarcodeScanner
+                        onScan={handleBarcodeScan}
+                        onError={(error: string) => console.error('Scanner error:', error)}
+                        isActive={showBarcodeScanner}
+                        enableTorch={true}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Manual Barcode Input */}
+                <div className="relative mt-2">
+                  <Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search products by name or SKU..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Or enter barcode manually..."
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={handleBarcodeInput}
                     className="pl-10"
                   />
                 </div>
@@ -406,6 +477,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                   )}
                   <TableHead>Product</TableHead>
                   <TableHead>SKU</TableHead>
+                  <TableHead>Barcode</TableHead>
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Min/Max</TableHead>
                   <TableHead>Status</TableHead>
@@ -457,6 +529,15 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       </code>
                     </TableCell>
                     <TableCell>
+                      {item.product.barcode ? (
+                        <code className="text-xs bg-blue-50 px-2 py-1 rounded font-mono">
+                          {item.product.barcode}
+                        </code>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No barcode</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{item.currentStock}</span>
                         {item.currentStock <= item.reorderPoint && (
@@ -504,11 +585,27 @@ const InventoryManagementComponent: React.FC<Props> = ({
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Adjust Stock - {item.product.title}</DialogTitle>
+                              <DialogTitle>
+                                Adjust Stock - {item.product.title}
+                                {scannedProduct?.id === item.id && (
+                                  <Badge className="ml-2 bg-green-100 text-green-800">
+                                    Scanned
+                                  </Badge>
+                                )}
+                              </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
-                                <Label>Current Stock: {item.currentStock}</Label>
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <Label>Current Stock: {item.currentStock}</Label>
+                                </div>
+                                {item.product.barcode && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">
+                                      Barcode: {item.product.barcode}
+                                    </Label>
+                                  </div>
+                                )}
                               </div>
                               <div>
                                 <Label htmlFor="adjustment">Adjustment</Label>

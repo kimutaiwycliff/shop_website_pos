@@ -20,11 +20,19 @@ const nextConfig = {
       }),
     ],
   },
-  webpack: (webpackConfig) => {
+  webpack: (webpackConfig, { isServer }) => {
     webpackConfig.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
       '.js': ['.ts', '.tsx', '.js', '.jsx'],
       '.mjs': ['.mts', '.mjs'],
+    }
+
+    // Exclude canvas from client-side bundling
+    if (!isServer) {
+      webpackConfig.resolve.fallback = {
+        ...webpackConfig.resolve.fallback,
+        canvas: false,
+      }
     }
 
     return webpackConfig
