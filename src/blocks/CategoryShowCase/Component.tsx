@@ -78,7 +78,7 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
                       <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg">
-                        <Link href={`/category/${categorySlug}`} className="block">
+                        <Link href={`/categories/${categorySlug}`} className="block">
                           <div className="relative aspect-video md:aspect-[4/3] overflow-hidden rounded-t-lg">
                             {item.customImage && typeof item.customImage === 'object' && (
                               <Media
