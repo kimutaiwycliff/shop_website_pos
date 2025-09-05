@@ -617,17 +617,21 @@ const CheckoutComponent: React.FC<Props> = ({
                   {/* Cart Items */}
                   <div className="space-y-3">
                     {cartItems.map((item) => (
-                      <div key={`${item.product.id}-${item.quantity}`} className="flex items-center gap-3">
-                        {item.product.images?.[0] && typeof item.product.images[0].image === 'object' && (
-                          <div className="w-12 h-12 relative">
-                            <Image
-                              src={item.product.images[0].image.url || ''}
-                              alt={item.product.images[0].image.alt || item.product.title || ''}
-                              fill
-                              className="object-cover rounded"
-                            />
-                          </div>
-                        )}
+                      <div
+                        key={`${item.product.id}-${item.quantity}`}
+                        className="flex items-center gap-3"
+                      >
+                        {item.product.images?.[0] &&
+                          typeof item.product.images[0].image === 'object' && (
+                            <div className="w-12 h-12 relative">
+                              <Image
+                                src={item.product.images[0].image.url || ''}
+                                alt={item.product.images[0].image.alt || item.product.title || ''}
+                                fill
+                                className="object-cover rounded"
+                              />
+                            </div>
+                          )}
                         <div className="flex-1">
                           <h4 className="text-sm font-medium">{item.product.title}</h4>
                           <div className="text-xs text-muted-foreground">

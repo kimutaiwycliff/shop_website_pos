@@ -49,7 +49,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setCartItems((prevItems) =>
         prevItems.map((item) =>
           item.product.id === product.id ? { ...item, quantity: newQuantity } : item,
-        )
+        ),
       )
       toast.success(`Added ${quantity} more ${product.title} to cart. Total: ${newQuantity}`)
     } else {
@@ -74,7 +74,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const itemToUpdate = cartItems.find((item) => item.product.id === productId)
     setCartItems((prevItems) =>
-      prevItems.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
+      prevItems.map((item) => (item.product.id === productId ? { ...item, quantity } : item)),
     )
     if (itemToUpdate) {
       toast.success(`Updated ${itemToUpdate.product.title} quantity to ${quantity}`)
