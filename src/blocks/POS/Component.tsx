@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Search,
   Plus,
@@ -112,6 +113,10 @@ const POSComponent: React.FC<Props> = ({
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  // Add state for VAT editing
+  const [showVatDialog, setShowVatDialog] = useState(false)
+  const [customTaxRate, setCustomTaxRate] = useState<number | null>(null)
+  const [customTaxIncluded, setCustomTaxIncluded] = useState<boolean | null>(null)
 
   // Mock products data - replace with real API call
   const [mockProducts] = useState([
@@ -145,7 +150,7 @@ const POSComponent: React.FC<Props> = ({
         searchParams.append('q', query)
       }
       searchParams.append('limit', '100')
-      
+
       const response = await fetch(`/api/products?${searchParams.toString()}`)
       if (response.ok) {
         const result = await response.json()
@@ -164,7 +169,9 @@ const POSComponent: React.FC<Props> = ({
   const findProductByBarcode = useCallback(async (barcode: string) => {
     try {
       // Use API endpoint for client-side fetching to avoid server-only imports
-      const response = await fetch(`/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`)
+      const response = await fetch(
+        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`,
+      )
       if (response.ok) {
         const data = await response.json()
         return data.docs?.[0] || null
@@ -241,9 +248,15 @@ const POSComponent: React.FC<Props> = ({
     return () => clearTimeout(timeoutId)
   }, [searchQuery, fetchProducts])
 
+  const defaultTaxRate = 0 // 0% VAT
+
   const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal - item.discount), 0)
-  const taxRate = taxSettings?.defaultTaxRate || 16
-  const taxAmount = taxSettings?.taxIncluded ? 0 : (subtotal * taxRate) / 100
+  // Use custom tax rate if set, otherwise use the default from settings
+  const taxRate = customTaxRate !== null ? customTaxRate : taxSettings?.defaultTaxRate || defaultTaxRate
+  // Use custom tax included setting if set, otherwise use the default from settings
+  const taxIncluded =
+    customTaxIncluded !== null ? customTaxIncluded : taxSettings?.taxIncluded || false
+  const taxAmount = taxIncluded ? 0 : (subtotal * taxRate) / 100
   const total = subtotal + taxAmount
   const change = amountPaid - total
 
@@ -365,6 +378,17 @@ const POSComponent: React.FC<Props> = ({
     setCurrentCashier(null)
     setIsLocked(true)
     clearCart()
+  }
+
+  // Function to apply custom VAT settings
+  const applyCustomVat = () => {
+    setShowVatDialog(false)
+  }
+
+  // Function to remove VAT
+  const removeVat = () => {
+    setCustomTaxRate(0)
+    setShowVatDialog(false)
   }
 
   if (isLocked) {
@@ -692,7 +716,7 @@ const POSComponent: React.FC<Props> = ({
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {!taxSettings?.taxIncluded && (
+                {!taxIncluded && (
                   <div className="flex justify-between">
                     <span>Tax ({taxRate}%)</span>
                     <span>{formatPrice(taxAmount)}</span>
@@ -703,6 +727,18 @@ const POSComponent: React.FC<Props> = ({
                   <span>Total</span>
                   <span>{formatPrice(total)}</span>
                 </div>
+              </div>
+
+              {/* VAT Settings Button */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowVatDialog(true)}
+                  className="flex-1"
+                >
+                  VAT Settings
+                </Button>
               </div>
 
               <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -817,6 +853,50 @@ const POSComponent: React.FC<Props> = ({
                   }
                 }}
               />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* VAT Settings Dialog */}
+      <Dialog open={showVatDialog} onOpenChange={setShowVatDialog}>
+        <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle>VAT Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="vat-rate">VAT Rate (%)</Label>
+              <Input
+                id="vat-rate"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                placeholder="Enter VAT rate"
+                value={customTaxRate !== null ? customTaxRate : taxSettings?.defaultTaxRate || 16}
+                onChange={(e) => setCustomTaxRate(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="vat-included"
+                checked={
+                  customTaxIncluded !== null ? customTaxIncluded : taxSettings?.taxIncluded || false
+                }
+                onCheckedChange={(checked: boolean) => setCustomTaxIncluded(checked)}
+              />
+              <Label htmlFor="vat-included">Tax Included in Prices</Label>
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={applyCustomVat} className="flex-1">
+                Apply VAT
+              </Button>
+              <Button variant="outline" onClick={removeVat} className="flex-1">
+                Remove VAT
+              </Button>
             </div>
           </div>
         </DialogContent>

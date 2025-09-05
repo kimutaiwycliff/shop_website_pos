@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   ShoppingCart,
   Plus,
@@ -18,10 +19,18 @@ import {
   ArrowRight,
   Truck,
   Tag,
+  Settings,
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/providers/CartContext'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 type Props = ShoppingCartBlockType
 
@@ -38,18 +47,27 @@ const ShoppingCartComponent: React.FC<Props> = ({
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
   const [promoDiscount, setPromoDiscount] = useState(0)
   const [loading, setLoading] = useState(false)
+  // Add state for VAT editing
+  const [showVatDialog, setShowVatDialog] = useState(false)
+  const [customTaxRate, setCustomTaxRate] = useState<number | null>(0)
+  const [customTaxIncluded, setCustomTaxIncluded] = useState<boolean | null>(null)
 
   // Additional configuration - these would typically come from site settings or environment
   const showEstimatedDelivery = true
   const emptyCartMessage = 'Your cart is empty. Continue shopping to find products you love!'
   const freeShippingThreshold = 5000 // KES 5,000 for free shipping
-  const taxRate = 16 // 16% VAT
+  const defaultTaxRate = 0 // 0% VAT
 
   const subtotal = getCartTotal()
 
+  // Use custom tax rate if set, otherwise use the default
+  const taxRate = customTaxRate !== null ? customTaxRate : defaultTaxRate
+  // Use custom tax included setting if set, otherwise assume it's not included
+  const taxIncluded = customTaxIncluded !== null ? customTaxIncluded : false
+
   const taxAmount = useMemo(() => {
-    return (subtotal * taxRate) / 100
-  }, [subtotal, taxRate])
+    return taxIncluded ? 0 : (subtotal * taxRate) / 100
+  }, [subtotal, taxRate, taxIncluded])
 
   const shippingCost = useMemo(() => {
     if (freeShippingThreshold && subtotal >= freeShippingThreshold) {
@@ -318,16 +336,75 @@ const ShoppingCartComponent: React.FC<Props> = ({
                     </div>
                   )}
 
-                  <div className="flex justify-between">
-                    <span>Tax (VAT {taxRate}%)</span>
-                    <span>{formatPrice(taxAmount)}</span>
-                  </div>
+                  {!taxIncluded && taxRate > 0 && (
+                    <div className="flex justify-between">
+                      <span>Tax (VAT {taxRate}%)</span>
+                      <span>{formatPrice(taxAmount)}</span>
+                    </div>
+                  )}
 
                   <Separator />
 
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>{formatPrice(total)}</span>
+                  </div>
+
+                  {/* VAT Settings Button */}
+                  <div className="pt-2">
+                    <Dialog open={showVatDialog} onOpenChange={setShowVatDialog}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Settings className="h-4 w-4 mr-2" />
+                          VAT Settings
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                        <DialogHeader>
+                          <DialogTitle>VAT Settings</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="vat-rate">VAT Rate (%)</Label>
+                            <Input
+                              id="vat-rate"
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              placeholder="Enter VAT rate"
+                              value={customTaxRate !== null ? customTaxRate : defaultTaxRate}
+                              onChange={(e) => setCustomTaxRate(parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="vat-included"
+                              checked={customTaxIncluded !== null ? customTaxIncluded : false}
+                              onCheckedChange={(checked: boolean) => setCustomTaxIncluded(checked)}
+                            />
+                            <Label htmlFor="vat-included">Tax Included in Prices</Label>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button onClick={() => setShowVatDialog(false)} className="flex-1">
+                              Apply VAT
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setCustomTaxRate(0)
+                                setShowVatDialog(false)
+                              }}
+                              className="flex-1"
+                            >
+                              Remove VAT
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
 
                   {showEstimatedDelivery && (
