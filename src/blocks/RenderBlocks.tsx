@@ -16,6 +16,7 @@ import CheckoutComponent from './Checkout/Component'
 import POSComponent from './POS/Component'
 import AnalyticsDashboardComponent from './AnalyticsDashboard/Component'
 import InventoryManagementComponent from './InventoryManagement/Component'
+import OrderConfirmationComponent from './OrderConfirmation/Component'
 
 const blockComponents = {
   archive: ArchiveBlock,
@@ -32,6 +33,7 @@ const blockComponents = {
   pos: POSComponent,
   analyticsDashboard: AnalyticsDashboardComponent,
   inventoryManagement: InventoryManagementComponent,
+  orderConfirmation: OrderConfirmationComponent,
 }
 
 export const RenderBlocks: React.FC<{

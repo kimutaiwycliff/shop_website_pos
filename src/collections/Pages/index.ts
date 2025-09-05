@@ -29,6 +29,7 @@ import { POSBlock } from '@/blocks/POS/config'
 import { AnalyticsDashboardBlock } from '@/blocks/AnalyticsDashboard/config'
 import { ShoppingCartBlock } from '@/blocks/ShoppingCart/config'
 import { InventoryManagementBlock } from '@/blocks/InventoryManagement/config'
+import { OrderConfirmationBlock } from '@/blocks/OrderConfirmation/config'
 
 export const Pages: CollectionConfig<'pages'> = {
   slug: 'pages',
@@ -99,6 +100,7 @@ export const Pages: CollectionConfig<'pages'> = {
                 POSBlock,
                 AnalyticsDashboardBlock,
                 InventoryManagementBlock,
+                OrderConfirmationBlock,
               ],
               required: true,
               admin: {

@@ -263,6 +263,7 @@ export interface Page {
     | POSBlock
     | AnalyticsDashboardBlock
     | InventoryManagementBlock
+    | OrderConfirmationBlock
   )[];
   meta?: {
     title?: string | null;
@@ -1461,6 +1462,16 @@ export interface InventoryManagementBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "OrderConfirmationBlock".
+ */
+export interface OrderConfirmationBlock {
+  title?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'orderConfirmation';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
 export interface Order {
@@ -2150,6 +2161,7 @@ export interface PagesSelect<T extends boolean = true> {
         pos?: T | POSBlockSelect<T>;
         analyticsDashboard?: T | AnalyticsDashboardBlockSelect<T>;
         inventoryManagement?: T | InventoryManagementBlockSelect<T>;
+        orderConfirmation?: T | OrderConfirmationBlockSelect<T>;
       };
   meta?:
     | T
@@ -2479,6 +2491,15 @@ export interface InventoryManagementBlockSelect<T extends boolean = true> {
   title?: T;
   enableBulkActions?: T;
   enableStockAlerts?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "OrderConfirmationBlock_select".
+ */
+export interface OrderConfirmationBlockSelect<T extends boolean = true> {
+  title?: T;
   id?: T;
   blockName?: T;
 }
