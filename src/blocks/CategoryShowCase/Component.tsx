@@ -12,6 +12,8 @@ import {
 import Autoplay from 'embla-carousel-autoplay'
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/utilities/ui'
 
 export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
   title,
@@ -44,8 +46,8 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
     <section ref={showcaseRef} className="py-12 sm:py-20">
       <div className="container max-w-screen-2xl">
         <div ref={headerRef} className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold mb-4">{title}</h2>
-          {subtitle && <p className="text-lg md:text-xl">{subtitle}</p>}
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4">{title}</h2>
+          {subtitle && <p className="text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>}
         </div>
 
         <div ref={carouselRef}>
@@ -75,25 +77,26 @@ export const CategoryShowCaseBlock: React.FC<CategoryShowCaseBlockProps> = ({
                 return (
                   <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
-                      <Link
-                        href={`/category/${categorySlug}`}
-                        className="relative aspect-video md:aspect-[4/3] group overflow-hidden rounded-lg block transition-all duration-300 hover:scale-105"
-                      >
-                        {item.customImage && typeof item.customImage === 'object' && (
-                          <Media
-                            fill
-                            imgClassName="object-cover transition-transform duration-500 group-hover:scale-110"
-                            priority
-                            resource={item.customImage}
-                          />
-                        )}
+                      <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+                        <Link href={`/category/${categorySlug}`} className="block">
+                          <div className="relative aspect-video md:aspect-[4/3] overflow-hidden rounded-t-lg">
+                            {item.customImage && typeof item.customImage === 'object' && (
+                              <Media
+                                fill
+                                imgClassName="object-cover transition-transform duration-500 group-hover:scale-110"
+                                priority
+                                resource={item.customImage}
+                              />
+                            )}
+                          </div>
 
-                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                          <h3 className="text-2xl font-bold font-headline text-white transition-all duration-300 group-hover:text-primary">
-                            {item.customTitle || categoryTitle}
-                          </h3>
-                        </div>
-                      </Link>
+                          <CardContent className="p-4">
+                            <h3 className="font-medium text-sm sm:text-base line-clamp-2 group-hover:text-primary transition-colors">
+                              {item.customTitle || categoryTitle}
+                            </h3>
+                          </CardContent>
+                        </Link>
+                      </Card>
                     </div>
                   </CarouselItem>
                 )

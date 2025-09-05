@@ -16,9 +16,9 @@ import {
 } from '@payloadcms/plugin-seo/fields'
 import { slugField } from '@/fields/slug'
 import { authenticated } from '@/access/authenticated'
-import { authenticatedOrPublished } from '@/access/authenticatedOrPublished'
 import { CollectionConfig } from 'payload'
 import { generateUPCAFromSKU } from '@/lib/barcodeUtils'
+import { anyone } from '@/access/anyone'
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -27,10 +27,10 @@ export const Products: CollectionConfig = {
     plural: 'Products',
   },
   access: {
+    read: () => true,
     create: authenticated,
-    delete: authenticated,
-    read: authenticatedOrPublished,
     update: authenticated,
+    delete: authenticated,
   },
   admin: {
     useAsTitle: 'title',
