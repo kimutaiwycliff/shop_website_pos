@@ -68,7 +68,7 @@ export const ProductGridBlock: Block = {
       relationTo: 'categories',
       hasMany: true,
       admin: {
-        condition: (data) => data.displayMode === 'category',
+        condition: (_, { displayMode } = {}) => displayMode === 'category',
         description: 'Select categories to display products from',
       },
     },
@@ -78,7 +78,7 @@ export const ProductGridBlock: Block = {
       relationTo: 'brands',
       hasMany: true,
       admin: {
-        condition: (data) => data.displayMode === 'brand',
+        condition: (_, { displayMode } = {}) => displayMode === 'brand',
         description: 'Select brands to display products from',
       },
     },
@@ -88,7 +88,7 @@ export const ProductGridBlock: Block = {
       relationTo: 'products',
       hasMany: true,
       admin: {
-        condition: (data) => data.displayMode === 'manual',
+        condition: (_, { displayMode } = {}) => displayMode === 'manual',
         description: 'Manually select products to display',
       },
     },
@@ -104,7 +104,7 @@ export const ProductGridBlock: Block = {
           defaultValue: 12,
           admin: {
             width: '50%',
-            condition: (data) => data.displayMode !== 'manual',
+            condition: (_, { displayMode } = {}) => displayMode !== 'manual',
           },
         },
         {
