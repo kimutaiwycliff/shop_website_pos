@@ -3,7 +3,10 @@ import type { Metadata } from 'next/types'
 import { PageRange } from '@/components/PageRange'
 import { Pagination } from '@/components/Pagination'
 import { queryCategories } from '@/utilities/getCategoriesServer'
+import configPromise from '@payload-config'
+import { getPayload } from 'payload'
 import React, { Suspense } from 'react'
+import { notFound } from 'next/navigation'
 import PageClient from '../../page.client'
 
 export const dynamic = 'force-static'
@@ -11,25 +14,20 @@ export const revalidate = 600
 
 type Args = {
   params: Promise<{
-    pageNumber?: string
+    pageNumber: string
   }>
-}
-
-export async function generateMetadata({ params: paramsPromise }: Args): Promise<Metadata> {
-  const { pageNumber } = await paramsPromise
-  return {
-    title: `Luxe Categories${pageNumber ? ` - Page ${pageNumber}` : ''}`,
-  }
 }
 
 export default async function Page({ params: paramsPromise }: Args) {
   const { pageNumber } = await paramsPromise
-  const pageNum = parseInt(pageNumber || '1', 10)
+  const sanitizedPageNumber = Number(pageNumber)
+
+  if (!Number.isInteger(sanitizedPageNumber)) notFound()
 
   const categories = await queryCategories({
     where: {},
     limit: 12,
-    page: pageNum,
+    page: sanitizedPageNumber,
     sort: '-createdAt',
     overrideAccess: true,
   })
@@ -85,4 +83,31 @@ export default async function Page({ params: paramsPromise }: Args) {
       </div>
     </div>
   )
+}
+
+export async function generateMetadata({ params: paramsPromise }: Args): Promise<Metadata> {
+  const { pageNumber } = await paramsPromise
+  return {
+    title: `Luxe Categories${pageNumber ? ` - Page ${pageNumber}` : ''}`,
+  }
+}
+
+export async function generateStaticParams() {
+  const configPromiseResolved = await configPromise
+  const payload = await getPayload({ config: configPromiseResolved })
+  
+  const { totalDocs } = await payload.count({
+    collection: 'categories',
+    overrideAccess: true, // Override access for static generation
+  })
+
+  const totalPages = Math.ceil(totalDocs / 12)
+
+  const pages: { pageNumber: string }[] = []
+
+  for (let i = 1; i <= totalPages; i++) {
+    pages.push({ pageNumber: String(i) })
+  }
+
+  return pages
 }
