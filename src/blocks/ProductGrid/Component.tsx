@@ -88,7 +88,9 @@ const ProductGridComponent: React.FC<Props> = ({
     setIsSearching(true)
     try {
       // Use API endpoint for client-side fetching to avoid server-only imports
-      const response = await fetch(`/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`)
+      const response = await fetch(
+        `/api/products?where[barcode][equals]=${encodeURIComponent(barcode)}&limit=1`,
+      )
       if (response.ok) {
         const data = await response.json()
         if (data.docs && data.docs.length > 0) {
@@ -164,11 +166,13 @@ const ProductGridComponent: React.FC<Props> = ({
       })
     }
 
-    // Price filter
-    filtered = filtered.filter((product) => {
-      const price = product.price || 0
-      return price >= priceRange[0] && price <= priceRange[1]
-    })
+    // Price filter - only apply if the range is not the default full range
+    if (priceRange[0] > 0 || priceRange[1] < 10000) {
+      filtered = filtered.filter((product) => {
+        const price = product.price || 0
+        return price >= priceRange[0] && price <= priceRange[1]
+      })
+    }
 
     // Apply sorting
     filtered.sort((a, b) => {
