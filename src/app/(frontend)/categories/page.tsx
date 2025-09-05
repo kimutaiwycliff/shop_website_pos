@@ -43,18 +43,21 @@ export default async function Page() {
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.docs.map((category) => (
-            <div key={category.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+            <div
+              key={category.id}
+              className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+            >
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-2">
                   <a href={`/categories/${category.slug}`} className="hover:underline">
                     {category.title}
                   </a>
                 </h2>
-                {category.parent && typeof category.parent === 'object' && 'title' in category.parent && (
-                  <p className="text-muted-foreground text-sm">
-                    Parent: {category.parent.title}
-                  </p>
-                )}
+                {category.parent &&
+                  typeof category.parent === 'object' &&
+                  'title' in category.parent && (
+                    <p className="text-muted-foreground text-sm">Parent: {category.parent.title}</p>
+                  )}
               </div>
             </div>
           ))}
@@ -73,7 +76,7 @@ export default async function Page() {
 export async function generateStaticParams() {
   const configPromiseResolved = await configPromise
   const payload = await getPayload({ config: configPromiseResolved })
-  
+
   const { totalDocs } = await payload.count({
     collection: 'categories',
     overrideAccess: true, // Override access for static generation

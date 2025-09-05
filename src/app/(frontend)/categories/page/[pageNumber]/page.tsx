@@ -95,7 +95,7 @@ export async function generateMetadata({ params: paramsPromise }: Args): Promise
 export async function generateStaticParams() {
   const configPromiseResolved = await configPromise
   const payload = await getPayload({ config: configPromiseResolved })
-  
+
   const { totalDocs } = await payload.count({
     collection: 'categories',
     overrideAccess: true, // Override access for static generation
