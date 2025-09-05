@@ -9,18 +9,22 @@ import { Media } from '../Media'
 import { Carousel, CarouselContent, CarouselItem } from '../ui/carousel'
 import Autoplay from 'embla-carousel-autoplay'
 import Fade from 'embla-carousel-fade'
+import { useCart } from '@/providers/CartContext'
 
 interface ProductCardProps {
   product: Product
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
+  const { addToCart } = useCart()
+
   const handleAddToCart = () => {
-    console.log('Add to cart clicked', product)
+    addToCart(product)
   }
+
   return (
     <Card className="w-full overflow-hidden group transition-all duration-300 hover:shadow-xl">
-      <Link href={`/product/${product.id}`}>
+      <Link href={`/products/${product.slug}`}>
         <div className="aspect-[3/4] overflow-hidden">
           {product.images && typeof product.images === 'object' && product.images.length > 0 && (
             <div className="h-full w-full">
@@ -71,7 +75,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <CardContent className="p-4">
           <h3 className="font-semibold text-lg truncate">{product.title}</h3>
           <p className="text-muted-foreground">
-            {typeof product.price === 'number' ? `${product.currency || '$'}${product.price.toFixed(2)}` : product.price}
+            {typeof product.price === 'number'
+              ? `${product.currency || '$'}${product.price.toFixed(2)}`
+              : product.price}
           </p>
         </CardContent>
       </Link>
@@ -79,7 +85,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <Button
           className="w-full"
           style={{ backgroundColor: 'hsl(var(--accent))', color: 'hsl(var(--accent-foreground))' }}
-          onClick={handleAddToCart}
+          onClick={(e) => {
+            e.preventDefault()
+            handleAddToCart()
+          }}
         >
           <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
         </Button>

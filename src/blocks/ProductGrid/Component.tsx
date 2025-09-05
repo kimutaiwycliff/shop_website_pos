@@ -24,6 +24,7 @@ import Image from 'next/image'
 import { SearchResult } from '@/lib/advancedSearch'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import BarcodeScanner from '../../components/BarcodeScanner'
+import { useCart } from '@/providers/CartContext'
 
 type Props = {
   products?: Product[]
@@ -261,6 +262,7 @@ const ProductGridComponent: React.FC<Props> = ({
     const discountPercentage = hasDiscount
       ? Math.round(((product.originalPrice! - (product.price || 0)) / product.originalPrice!) * 100)
       : 0
+    const { addToCart } = useCart()
 
     return (
       <Card
@@ -359,7 +361,14 @@ const ProductGridComponent: React.FC<Props> = ({
         </CardContent>
 
         <CardFooter className={cn('p-4 pt-0', cardStyle === 'compact' && 'p-2 pt-0')}>
-          <Button className="w-full" size={cardStyle === 'compact' ? 'sm' : 'default'}>
+          <Button
+            className="w-full"
+            size={cardStyle === 'compact' ? 'sm' : 'default'}
+            onClick={(e) => {
+              e.preventDefault()
+              addToCart(product)
+            }}
+          >
             <ShoppingCart className="h-4 w-4 mr-2" />
             Add to Cart
           </Button>

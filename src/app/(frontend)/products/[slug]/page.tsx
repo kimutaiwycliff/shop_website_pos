@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { ShoppingCart, Heart, Share2 } from 'lucide-react'
 import PageClient from '../page.client'
 import RichText from '@/components/RichText'
+import { AddToCartSection } from '@/components/Product/AddToCartSection'
 
 export async function generateStaticParams() {
   const configPromiseResolved = await configPromise
@@ -47,7 +48,7 @@ type Args = {
   }>
 }
 
-export default async function ProductPage({ params: paramsPromise }: Args) {
+export default async function Product({ params: paramsPromise }: Args) {
   const { isEnabled: draft } = await draftMode()
   const { slug = '' } = await paramsPromise
   const url = '/products/' + slug
@@ -87,21 +88,11 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
     : 0
 
   return (
-    <article className="pt-16 pb-16">
-      <Suspense fallback={null}>
-        <PageClient />
-      </Suspense>
-
-      {/* Allows redirects for valid pages too */}
-      <PayloadRedirects disableNotFound url={url} />
-
-      {draft && <LivePreviewListener />}
-
-      <div className="container mx-auto px-4">
-        {/* Product Details */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-16">
-          {/* Product Images */}
-          <div className="space-y-4">
+    <article className="pt-8 pb-16">
+      <div className="container px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
+          {/* Image Gallery */}
+          <div className="order-2 lg:order-1">
             {primaryImage && (
               <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                 <Image
@@ -140,7 +131,7 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
           </div>
 
           {/* Product Info */}
-          <div className="space-y-6">
+          <div className="order-1 lg:order-2 space-y-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
               {product.brand && typeof product.brand === 'object' && 'name' in product.brand && (
@@ -192,18 +183,7 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
             )}
 
             {/* Actions */}
-            <div className="flex gap-4">
-              <Button size="lg" className="flex-1" disabled={product.inStock === 0}>
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Add to Cart
-              </Button>
-              <Button size="lg" variant="outline">
-                <Heart className="h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline">
-                <Share2 className="h-5 w-5" />
-              </Button>
-            </div>
+            <AddToCartSection product={product} />
 
             {/* Description */}
             {product.description && (
