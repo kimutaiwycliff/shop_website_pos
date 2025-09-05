@@ -19,7 +19,7 @@ import PageClient from '../page.client'
 export async function generateStaticParams() {
   const configPromiseResolved = await configPromise
   const payload = await getPayload({ config: configPromiseResolved })
-  
+
   const products = await payload.find({
     collection: 'products',
     where: {},
@@ -31,7 +31,9 @@ export async function generateStaticParams() {
     },
   })
 
-  const params = products.docs.map(({ slug }) => {
+  const params = products.docs.map((product) => {
+    // Ensure slug is a string
+    const slug = typeof product.slug === 'string' ? product.slug : String(product.slug)
     return { slug }
   })
 
@@ -53,19 +55,21 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
   if (!product) return <PayloadRedirects url={url} />
 
   // Get related products from the same category
-  const relatedProducts = product.categories?.length ? await queryProducts({
-    where: {
-      categories: {
-        in: product.categories.map(cat => typeof cat === 'object' ? cat.id : cat),
-      },
-      id: {
-        not_equals: product.id,
-      },
-    },
-    limit: 4,
-    sort: '-createdAt',
-    overrideAccess: true,
-  }) : null
+  const relatedProducts = product.categories?.length
+    ? await queryProducts({
+        where: {
+          categories: {
+            in: product.categories.map((cat) => (typeof cat === 'object' ? cat.id : cat)),
+          },
+          id: {
+            not_equals: product.id,
+          },
+        },
+        limit: 4,
+        sort: '-createdAt',
+        overrideAccess: true,
+      })
+    : null
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -113,12 +117,15 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
                 )}
               </div>
             )}
-            
+
             {/* Additional images */}
             {product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {product.images.slice(1).map((img, index) => (
-                  <div key={index} className="aspect-square relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <div
+                    key={index}
+                    className="aspect-square relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800"
+                  >
                     <Image
                       src={typeof img.image === 'object' ? img.image.url || '' : ''}
                       alt={img.alt || `${product.title} image ${index + 2}`}
@@ -165,7 +172,10 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Stock:</span>
               {product.inStock > 0 ? (
-                <Badge variant="default" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                <Badge
+                  variant="default"
+                  className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+                >
                   {product.inStock} in stock
                 </Badge>
               ) : (
