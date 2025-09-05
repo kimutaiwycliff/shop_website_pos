@@ -24,6 +24,7 @@ import {
 import { cn } from '@/utilities/ui'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useCart } from '@/providers/CartContext'
 
 interface CheckoutFormData {
   // Customer Info
@@ -76,6 +77,7 @@ const CheckoutComponent: React.FC<Props> = ({
   enableNewsletter = true,
   taxSettings,
 }) => {
+  const { cartItems, getCartTotal } = useCart()
   const [formData, setFormData] = useState<CheckoutFormData>({
     email: '',
     firstName: '',
@@ -109,22 +111,8 @@ const CheckoutComponent: React.FC<Props> = ({
   const [loading, setLoading] = useState(false)
   const [isLoggedIn] = useState(false)
 
-  // Mock cart items - replace with actual cart data
-  const [cartItems] = useState([
-    {
-      id: '1',
-      product: {
-        title: 'Premium Cotton T-Shirt',
-        price: 2500,
-        images: [{ image: { url: '/api/media/tshirt.jpg', alt: 'T-Shirt' } }],
-      },
-      quantity: 2,
-      selectedVariants: { size: 'M', color: 'Blue' },
-      lineTotal: 5000,
-    },
-  ])
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.lineTotal, 0)
+  // Remove the mock cart items and use the cart context instead
+  const subtotal = getCartTotal()
   const taxRate = taxSettings?.taxRate || 16
   const taxAmount = (subtotal * taxRate) / 100
   const shippingCost = formData.shippingMethod
@@ -629,12 +617,12 @@ const CheckoutComponent: React.FC<Props> = ({
                   {/* Cart Items */}
                   <div className="space-y-3">
                     {cartItems.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3">
-                        {item.product.images?.[0] && (
+                      <div key={`${item.product.id}-${item.quantity}`} className="flex items-center gap-3">
+                        {item.product.images?.[0] && typeof item.product.images[0].image === 'object' && (
                           <div className="w-12 h-12 relative">
                             <Image
-                              src={item.product.images[0].image.url}
-                              alt={item.product.images[0].image.alt}
+                              src={item.product.images[0].image.url || ''}
+                              alt={item.product.images[0].image.alt || item.product.title || ''}
                               fill
                               className="object-cover rounded"
                             />
@@ -644,14 +632,14 @@ const CheckoutComponent: React.FC<Props> = ({
                           <h4 className="text-sm font-medium">{item.product.title}</h4>
                           <div className="text-xs text-muted-foreground">
                             Qty: {item.quantity}
-                            {item.selectedVariants && (
-                              <span className="ml-2">
-                                {item.selectedVariants.size}, {item.selectedVariants.color}
-                              </span>
+                            {item.product.brand && typeof item.product.brand === 'object' && (
+                              <span className="ml-2">{item.product.brand.name}</span>
                             )}
                           </div>
                         </div>
-                        <span className="text-sm font-medium">{formatPrice(item.lineTotal)}</span>
+                        <span className="text-sm font-medium">
+                          {formatPrice((item.product.price || 0) * item.quantity)}
+                        </span>
                       </div>
                     ))}
                   </div>
