@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Heart, Share2 } from 'lucide-react'
 import PageClient from '../page.client'
+import RichText from '@/components/RichText'
 
 export async function generateStaticParams() {
   const configPromiseResolved = await configPromise
@@ -209,7 +210,7 @@ export default async function ProductPage({ params: paramsPromise }: Args) {
               <div className="prose dark:prose-invert max-w-none">
                 <h3>Description</h3>
                 {/* You would render the rich text content here */}
-                <div>{JSON.stringify(product.description)}</div>
+                <RichText className="mb-6" data={product.description} enableGutter={false} />
               </div>
             )}
           </div>
