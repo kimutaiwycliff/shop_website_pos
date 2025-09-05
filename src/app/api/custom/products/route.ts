@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const sort = searchParams.get('sort') || '-createdAt'
     const whereParam = searchParams.get('where')
-    const depth = parseInt(searchParams.get('depth') || '1')
 
     let where: any = {}
 

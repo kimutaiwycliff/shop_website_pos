@@ -5,24 +5,30 @@ import JsBarcode from 'jsbarcode'
  * UPC-A requires 12 digits, so we'll create one from the SKU
  */
 export function generateUPCAFromSKU(sku: string): string {
-  // Remove non-alphanumeric characters and convert to uppercase
-  const cleanSku = sku.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+  try {
+    // Remove non-alphanumeric characters and convert to uppercase
+    const cleanSku = sku.replace(/[^A-Z0-9]/gi, '').toUpperCase()
 
-  // Create a simple hash of the SKU to generate consistent numeric values
-  let hash = 0
-  for (let i = 0; i < cleanSku.length; i++) {
-    const char = cleanSku.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash // Convert to 32-bit integer
+    // Create a simple hash of the SKU to generate consistent numeric values
+    let hash = 0
+    for (let i = 0; i < cleanSku.length; i++) {
+      const char = cleanSku.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+
+    // Convert to positive number and pad to get 11 digits (12th will be check digit)
+    const hashStr = Math.abs(hash).toString().padStart(11, '0').slice(0, 11)
+
+    // Calculate UPC-A check digit
+    const checkDigit = calculateUPCACheckDigit(hashStr)
+
+    return hashStr + checkDigit
+  } catch (error) {
+    console.error('Error generating UPC-A from SKU:', error)
+    // Return a default valid UPC-A code instead of throwing
+    return '123456789012'
   }
-
-  // Convert to positive number and pad to get 11 digits (12th will be check digit)
-  const hashStr = Math.abs(hash).toString().padStart(11, '0').slice(0, 11)
-
-  // Calculate UPC-A check digit
-  const checkDigit = calculateUPCACheckDigit(hashStr)
-
-  return hashStr + checkDigit
 }
 
 /**
@@ -51,17 +57,22 @@ function calculateUPCACheckDigit(elevenDigits: string): string {
  * Validate UPC-A barcode format
  */
 export function validateUPCA(barcode: string): boolean {
-  // Must be exactly 12 digits
-  if (!/^\d{12}$/.test(barcode)) {
+  try {
+    // Must be exactly 12 digits
+    if (!/^\d{12}$/.test(barcode)) {
+      return false
+    }
+
+    // Verify check digit
+    const elevenDigits = barcode.slice(0, 11)
+    const providedCheckDigit = barcode[11]
+    const calculatedCheckDigit = calculateUPCACheckDigit(elevenDigits)
+
+    return providedCheckDigit === calculatedCheckDigit
+  } catch (error) {
+    console.error('Error validating UPC-A:', error)
     return false
   }
-
-  // Verify check digit
-  const elevenDigits = barcode.slice(0, 11)
-  const providedCheckDigit = barcode[11]
-  const calculatedCheckDigit = calculateUPCACheckDigit(elevenDigits)
-
-  return providedCheckDigit === calculatedCheckDigit
 }
 
 /**

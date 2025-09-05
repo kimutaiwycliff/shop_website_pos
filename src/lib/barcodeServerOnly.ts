@@ -110,6 +110,7 @@ export async function createBarcodeMedia(
     return media.id
   } catch (error) {
     console.error('Error creating barcode media:', error)
+    // Return null instead of throwing to prevent crashing the entire operation
     console.warn('Continuing without barcode media creation')
     return null
   }

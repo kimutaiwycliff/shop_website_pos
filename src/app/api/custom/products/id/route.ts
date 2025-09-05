@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { queryProductById } from '@/utilities/getProductsServer'
 
-type Props = {
-  params: Promise<{
-    id: string
-  }>
-}
-
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 

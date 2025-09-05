@@ -632,7 +632,10 @@ export const Products: CollectionConfig = {
               })
             }
           } catch (error) {
+            // Log the error but don't prevent the operation from completing
             console.error('Error generating barcode image:', error)
+            // Optionally, you could add a field to track barcode generation status
+            // This allows the operation to complete even if barcode generation fails
           }
         }
       },
