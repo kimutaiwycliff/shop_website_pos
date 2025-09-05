@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Product } from '@/payload-types'
+import { toast } from 'sonner'
 
 interface CartItem {
   product: Product
@@ -41,21 +42,28 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [cartItems])
 
   const addToCart = (product: Product, quantity: number = 1) => {
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product.id === product.id)
+    const existingItem = cartItems.find((item) => item.product.id === product.id)
 
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + quantity } : item,
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity
+      setCartItems((prevItems) =>
+        prevItems.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: newQuantity } : item,
         )
-      } else {
-        return [...prevItems, { product, quantity }]
-      }
-    })
+      )
+      toast.success(`Added ${quantity} more ${product.title} to cart. Total: ${newQuantity}`)
+    } else {
+      setCartItems((prevItems) => [...prevItems, { product, quantity }])
+      toast.success(`Added ${product.title} to cart`)
+    }
   }
 
   const removeFromCart = (productId: number) => {
+    const itemToRemove = cartItems.find((item) => item.product.id === productId)
     setCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId))
+    if (itemToRemove) {
+      toast.success(`Removed ${itemToRemove.product.title} from cart`)
+    }
   }
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -64,13 +72,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return
     }
 
+    const itemToUpdate = cartItems.find((item) => item.product.id === productId)
     setCartItems((prevItems) =>
-      prevItems.map((item) => (item.product.id === productId ? { ...item, quantity } : item)),
+      prevItems.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
     )
+    if (itemToUpdate) {
+      toast.success(`Updated ${itemToUpdate.product.title} quantity to ${quantity}`)
+    }
   }
 
   const clearCart = () => {
     setCartItems([])
+    toast.success('Cart cleared')
   }
 
   const getCartTotal = () => {
