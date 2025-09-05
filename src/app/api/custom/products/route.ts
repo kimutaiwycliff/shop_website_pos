@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || '-createdAt'
     const whereParam = searchParams.get('where')
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let where: any = {}
 
     // Parse where parameter if provided

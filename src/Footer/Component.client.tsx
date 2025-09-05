@@ -166,7 +166,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ copyright, navItems 
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link
-                    href="/shop"
+                    href="/products"
                     className="text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 duration-300 inline-block"
                   >
                     All Products
@@ -174,7 +174,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ copyright, navItems 
                 </li>
                 <li>
                   <Link
-                    href="/new-arrivals"
+                    href="/categories/new-arrivals"
                     className="text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 duration-300 inline-block"
                   >
                     New In
@@ -182,7 +182,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ copyright, navItems 
                 </li>
                 <li>
                   <Link
-                    href="/category/dresses"
+                    href="/categories/dresses"
                     className="text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 duration-300 inline-block"
                   >
                     Dresses
@@ -190,7 +190,7 @@ export const FooterClient: React.FC<FooterClientProps> = ({ copyright, navItems 
                 </li>
                 <li>
                   <Link
-                    href="/sale"
+                    href="categories/sale"
                     className="text-muted-foreground hover:text-primary transition-colors hover:translate-x-1 duration-300 inline-block"
                   >
                     Sale

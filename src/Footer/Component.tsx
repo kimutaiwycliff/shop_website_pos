@@ -3,6 +3,7 @@ import React from 'react'
 import { FooterClient } from './Component.client'
 
 interface FooterItem {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   link: any
   title?: string
   id?: string
