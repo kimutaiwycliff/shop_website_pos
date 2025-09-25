@@ -1048,6 +1048,10 @@ export interface Product {
    */
   taxRate?: number | null;
   /**
+   * Maximum discount percentage allowed for this product (0-100%)
+   */
+  maxDiscountPercent?: number | null;
+  /**
    * Available items in stock
    */
   inStock: number;
@@ -2721,6 +2725,7 @@ export interface ProductsSelect<T extends boolean = true> {
   price?: T;
   originalPrice?: T;
   taxRate?: T;
+  maxDiscountPercent?: T;
   inStock?: T;
   lowStockThreshold?: T;
   trackInventory?: T;

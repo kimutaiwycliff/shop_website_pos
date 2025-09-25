@@ -65,6 +65,7 @@ interface POSItem {
       }
     }>
     inStock: number
+    maxDiscountPercent?: number
   }
   quantity: number
   unitPrice: number
@@ -127,6 +128,7 @@ const POSComponent: React.FC<Props> = ({
       sku: 'TSH-001',
       barcode: '1234567890123',
       inStock: 15,
+      maxDiscountPercent: 30,
       images: [{ image: { url: '/api/media/tshirt.jpg', alt: 'T-Shirt' } }],
     },
     {
@@ -136,59 +138,63 @@ const POSComponent: React.FC<Props> = ({
       sku: 'JNS-001',
       barcode: '1234567890124',
       inStock: 8,
+      maxDiscountPercent: 20,
       images: [{ image: { url: '/api/media/jeans.jpg', alt: 'Jeans' } }],
     },
   ])
 
   // Fetch products from the database with improved query parameter handling
-  const fetchProducts = useCallback(async (query?: string) => {
-    setIsLoadingProducts(true)
-    
-    // Retry mechanism
-    const maxRetries = 3
-    let retries = 0
-    
-    const attemptFetch = async (): Promise<void> => {
-      try {
-        // Build query parameters properly
-        const params = new URLSearchParams()
-        params.append('limit', '100')
-        params.append('where[status][equals]', 'published')
-        
-        if (query) {
-          params.append('q', query)
-        }
+  const fetchProducts = useCallback(
+    async (query?: string) => {
+      setIsLoadingProducts(true)
 
-        const response = await fetch(`/api/products?${params.toString()}`)
-        
-        if (response.ok) {
-          const result = await response.json()
-          setProducts(result.docs || [])
-        } else {
-          const errorText = await response.text().catch(() => 'Unknown error')
-          throw new Error(`HTTP ${response.status}: ${errorText}`)
-        }
-      } catch (error) {
-        retries++
-        
-        if (retries < maxRetries) {
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * retries))
-          return attemptFetch()
-        } else {
-          // All retries failed
-          console.error('Failed to fetch products after', maxRetries, 'attempts:', error)
-          // Show user-friendly error message
-          alert('Failed to load products after multiple attempts. Please try again later.')
-          // Fallback to mock data if API fails
-          setProducts(mockProducts)
+      // Retry mechanism
+      const maxRetries = 3
+      let retries = 0
+
+      const attemptFetch = async (): Promise<void> => {
+        try {
+          // Build query parameters properly
+          const params = new URLSearchParams()
+          params.append('limit', '100')
+          params.append('where[status][equals]', 'published')
+
+          if (query) {
+            params.append('q', query)
+          }
+
+          const response = await fetch(`/api/products?${params.toString()}`)
+
+          if (response.ok) {
+            const result = await response.json()
+            setProducts(result.docs || [])
+          } else {
+            const errorText = await response.text().catch(() => 'Unknown error')
+            throw new Error(`HTTP ${response.status}: ${errorText}`)
+          }
+        } catch (error) {
+          retries++
+
+          if (retries < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
+            return attemptFetch()
+          } else {
+            // All retries failed
+            console.error('Failed to fetch products after', maxRetries, 'attempts:', error)
+            // Show user-friendly error message
+            alert('Failed to load products after multiple attempts. Please try again later.')
+            // Fallback to mock data if API fails
+            setProducts(mockProducts)
+          }
         }
       }
-    }
-    
-    await attemptFetch()
-    setIsLoadingProducts(false)
-  }, [mockProducts])
+
+      await attemptFetch()
+      setIsLoadingProducts(false)
+    },
+    [mockProducts],
+  )
 
   // Find product by barcode with improved query parameter handling
   const findProductByBarcode = useCallback(async (barcode: string) => {
@@ -198,20 +204,27 @@ const POSComponent: React.FC<Props> = ({
       params.append('where[barcode][equals]', barcode)
       params.append('where[status][equals]', 'published')
       params.append('limit', '1')
-      
+
       const response = await fetch(`/api/products?${params.toString()}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         return data.docs?.[0] || null
       } else {
         const errorText = await response.text().catch(() => 'Unknown error')
-        console.error('Failed to find product by barcode:', response.status, response.statusText, errorText)
+        console.error(
+          'Failed to find product by barcode:',
+          response.status,
+          response.statusText,
+          errorText,
+        )
         alert('Failed to search for product by barcode. Please try again.')
       }
     } catch (error) {
       console.error('Error finding product by barcode:', error)
-      alert('Network error while searching for product. Please check your connection and try again.')
+      alert(
+        'Network error while searching for product. Please check your connection and try again.',
+      )
     }
     return null
   }, [])
@@ -223,7 +236,7 @@ const POSComponent: React.FC<Props> = ({
       try {
         // Use API endpoint for client-side fetching to avoid server-only imports
         const response = await fetch(`/api/products/${result.id}`)
-        
+
         if (response.ok) {
           const productData = await response.json()
           addToCart(productData)
@@ -295,7 +308,8 @@ const POSComponent: React.FC<Props> = ({
 
   const subtotal = cart.reduce((sum, item) => sum + (item.lineTotal - item.discount), 0)
   // Use custom tax rate if set, otherwise use the default from settings
-  const taxRate = customTaxRate !== null ? customTaxRate : taxSettings?.defaultTaxRate || defaultTaxRate
+  const taxRate =
+    customTaxRate !== null ? customTaxRate : taxSettings?.defaultTaxRate || defaultTaxRate
   // Use custom tax included setting if set, otherwise use the default from settings
   const taxIncluded =
     customTaxIncluded !== null ? customTaxIncluded : taxSettings?.taxIncluded || false
@@ -322,53 +336,53 @@ const POSComponent: React.FC<Props> = ({
         body: JSON.stringify({
           inStock: newStock,
         }),
-      });
+      })
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error')
         const error = new Error(`HTTP ${response.status}: ${errorText}`)
         console.error('Failed to update product stock:', error)
-        throw error;
+        throw error
       }
 
-      const updatedProduct = await response.json();
-      return updatedProduct;
+      const updatedProduct = await response.json()
+      return updatedProduct
     } catch (error) {
-      console.error('Error updating product stock:', error);
-      throw error;
+      console.error('Error updating product stock:', error)
+      throw error
     }
-  }, []);
+  }, [])
 
   // Refresh products data
   const refreshProducts = useCallback(async () => {
     console.log('Refreshing products data...')
-    await fetchProducts();
+    await fetchProducts()
   }, [fetchProducts])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addToCart = (product: any) => {
-    console.log('Adding product to cart:', product.title, 'Stock available:', product.inStock);
-    
+    console.log('Adding product to cart:', product.title, 'Stock available:', product.inStock)
+
     // Check if product is in stock
     if (product.inStock <= 0) {
-      console.log('Product is out of stock:', product.title);
-      alert('This product is out of stock and cannot be added to the cart.');
-      return;
+      console.log('Product is out of stock:', product.title)
+      alert('This product is out of stock and cannot be added to the cart.')
+      return
     }
 
-    const existingItem = cart.find((item) => item.product.id === product.id);
+    const existingItem = cart.find((item) => item.product.id === product.id)
 
     if (existingItem) {
       // Check if adding another would exceed stock
       if (existingItem.quantity >= product.inStock) {
-        console.log('Cannot add more of this product. Stock limit reached for:', product.title);
-        alert(`Cannot add more of this product. Only ${product.inStock} items in stock.`);
-        return;
+        console.log('Cannot add more of this product. Stock limit reached for:', product.title)
+        alert(`Cannot add more of this product. Only ${product.inStock} items in stock.`)
+        return
       }
-      console.log('Updating quantity for existing item:', product.title);
-      updateQuantity(existingItem.id, existingItem.quantity + 1);
+      console.log('Updating quantity for existing item:', product.title)
+      updateQuantity(existingItem.id, existingItem.quantity + 1)
     } else {
-      console.log('Adding new item to cart:', product.title);
+      console.log('Adding new item to cart:', product.title)
       const newItem: POSItem = {
         id: Date.now().toString(),
         product,
@@ -376,43 +390,50 @@ const POSComponent: React.FC<Props> = ({
         unitPrice: product.price,
         discount: 0,
         lineTotal: product.price,
-      };
-      setCart([...cart, newItem]);
+      }
+      setCart([...cart, newItem])
     }
 
-    setSearchQuery('');
-    searchInputRef.current?.focus();
-  };
+    setSearchQuery('')
+    searchInputRef.current?.focus()
+  }
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
-    const item = cart.find((item) => item.id === itemId);
-    
-    if (!item) return;
+    const item = cart.find((item) => item.id === itemId)
 
-    console.log('Updating quantity for item:', item.product.title, 'New quantity:', newQuantity, 'Stock available:', item.product.inStock);
+    if (!item) return
+
+    console.log(
+      'Updating quantity for item:',
+      item.product.title,
+      'New quantity:',
+      newQuantity,
+      'Stock available:',
+      item.product.inStock,
+    )
 
     // Check if new quantity exceeds stock
     if (newQuantity > item.product.inStock) {
-      console.log('Cannot update quantity. Stock limit reached for:', item.product.title);
-      alert(`Cannot add more of this product. Only ${item.product.inStock} items in stock.`);
-      return;
+      console.log('Cannot update quantity. Stock limit reached for:', item.product.title)
+      alert(`Cannot add more of this product. Only ${item.product.inStock} items in stock.`)
+      return
     }
 
     if (newQuantity <= 0) {
-      console.log('Removing item from cart:', item.product.title);
-      removeFromCart(itemId);
-      return;
+      console.log('Removing item from cart:', item.product.title)
+      removeFromCart(itemId)
+      return
     }
 
     setCart(
       cart.map((cartItem) => {
         if (cartItem.id === itemId) {
-          const lineTotal = newQuantity * cartItem.unitPrice;
-          return { ...cartItem, quantity: newQuantity, lineTotal };
+          const lineTotal = newQuantity * cartItem.unitPrice
+          return { ...cartItem, quantity: newQuantity, lineTotal }
         }
-        return cartItem;
+        return cartItem
       }),
-    );
+    )
   }
 
   const removeFromCart = (itemId: string) => {
@@ -423,8 +444,23 @@ const POSComponent: React.FC<Props> = ({
     setCart(
       cart.map((item) => {
         if (item.id === itemId) {
-          const maxDiscount = (item.lineTotal * (discountSettings?.maxDiscountPercent || 50)) / 100
+          // Use product-specific max discount if available, otherwise fall back to global setting
+          const productMaxDiscount =
+            item.product.maxDiscountPercent !== undefined &&
+            item.product.maxDiscountPercent !== null
+              ? item.product.maxDiscountPercent
+              : discountSettings?.maxDiscountPercent || 50
+
+          const maxDiscount = (item.lineTotal * productMaxDiscount) / 100
           const finalDiscount = Math.min(discountAmount, maxDiscount)
+
+          // Show alert if discount is being capped
+          if (discountAmount > maxDiscount) {
+            alert(
+              `Maximum discount for this product is ${productMaxDiscount}%. Discount has been capped.`,
+            )
+          }
+
           return { ...item, discount: finalDiscount }
         }
         return item
@@ -440,23 +476,25 @@ const POSComponent: React.FC<Props> = ({
   }
 
   const processSale = async () => {
-    if (cart.length === 0 || !paymentMethod) return;
+    if (cart.length === 0 || !paymentMethod) return
 
-    console.log('Processing sale with items:', cart);
+    console.log('Processing sale with items:', cart)
 
     try {
       // Update stock for each item in the cart
       const stockUpdatePromises = cart.map(async (item) => {
-        const newStock = item.product.inStock - item.quantity;
-        console.log(`Updating stock for ${item.product.title}: ${item.product.inStock} -> ${newStock}`);
-        
+        const newStock = item.product.inStock - item.quantity
+        console.log(
+          `Updating stock for ${item.product.title}: ${item.product.inStock} -> ${newStock}`,
+        )
+
         try {
           // Update product stock in the database
-          await updateProductStock(item.product.id, newStock);
-          
+          await updateProductStock(item.product.id, newStock)
+
           // If stock reaches zero, update product status
           if (newStock === 0) {
-            console.log(`Product ${item.product.title} is now out of stock`);
+            console.log(`Product ${item.product.title} is now out of stock`)
             try {
               const response = await fetch(`/api/products/${item.product.id}`, {
                 method: 'PATCH',
@@ -466,11 +504,16 @@ const POSComponent: React.FC<Props> = ({
                 body: JSON.stringify({
                   status: 'out-of-stock',
                 }),
-              });
-              
+              })
+
               if (!response.ok) {
                 const errorText = await response.text().catch(() => 'Unknown error')
-                console.error('Failed to update product status:', response.status, response.statusText, errorText)
+                console.error(
+                  'Failed to update product status:',
+                  response.status,
+                  response.statusText,
+                  errorText,
+                )
               }
             } catch (error) {
               console.error('Error updating product status:', error)
@@ -478,14 +521,16 @@ const POSComponent: React.FC<Props> = ({
           }
         } catch (error) {
           console.error('Error updating stock for product:', item.product.title, error)
-          throw new Error(`Failed to update stock for ${item.product.title}: ${(error as Error).message}`)
+          throw new Error(
+            `Failed to update stock for ${item.product.title}: ${(error as Error).message}`,
+          )
         }
-        
-        return { productId: item.product.id, newStock };
-      });
+
+        return { productId: item.product.id, newStock }
+      })
 
       // Wait for all stock updates to complete
-      await Promise.all(stockUpdatePromises);
+      await Promise.all(stockUpdatePromises)
 
       // Simulate processing
       console.log('Processing sale:', {
@@ -495,26 +540,28 @@ const POSComponent: React.FC<Props> = ({
         total,
         amountPaid,
         change,
-      });
+      })
 
       // Print receipt if enabled
       if (enableReceiptPrinting) {
-        printReceipt();
+        printReceipt()
       }
 
       // Refresh product data to reflect updated stock levels
-      await refreshProducts();
+      await refreshProducts()
 
       // Clear cart and close dialog
-      clearCart();
-      setShowPaymentDialog(false);
+      clearCart()
+      setShowPaymentDialog(false)
 
-      alert('Sale completed successfully!');
+      alert('Sale completed successfully!')
     } catch (error) {
-      console.error('Error processing sale:', error);
-      alert(`There was an error processing the sale: ${(error as Error).message || 'Please try again.'}`);
+      console.error('Error processing sale:', error)
+      alert(
+        `There was an error processing the sale: ${(error as Error).message || 'Please try again.'}`,
+      )
     }
-  };
+  }
 
   const printReceipt = () => {
     // In a real implementation, this would interface with a receipt printer
@@ -580,6 +627,15 @@ const POSComponent: React.FC<Props> = ({
       </div>
     )
   }
+
+  // Find the selected item for discount display
+  const selectedItem = cart.find((item) => item.id === selectedItemForDiscount)
+  const maxDiscountPercent =
+    selectedItem?.product?.maxDiscountPercent !== undefined &&
+    selectedItem?.product?.maxDiscountPercent !== null
+      ? selectedItem.product.maxDiscountPercent
+      : discountSettings?.maxDiscountPercent || 50
+  const maxDiscountAmount = selectedItem ? (selectedItem.lineTotal * maxDiscountPercent) / 100 : 0
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -684,7 +740,7 @@ const POSComponent: React.FC<Props> = ({
                   key={product.id}
                   className={cn(
                     'cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                    product.inStock <= 0 && 'opacity-50 cursor-not-allowed'
+                    product.inStock <= 0 && 'opacity-50 cursor-not-allowed',
                   )}
                   onClick={() => product.inStock > 0 && addToCart(product)}
                 >
@@ -713,8 +769,8 @@ const POSComponent: React.FC<Props> = ({
                         className={cn(
                           'text-xs',
                           product.inStock > 0
-                            ? product.inStock <= 5 
-                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' 
+                            ? product.inStock <= 5
+                              ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
                               : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
                             : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
                         )}
@@ -866,18 +922,27 @@ const POSComponent: React.FC<Props> = ({
                     </div>
 
                     {discountSettings?.enableLineItemDiscounts && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => {
-                          setSelectedItemForDiscount(item.id)
-                          setShowDiscountDialog(true)
-                        }}
-                      >
-                        <Percent className="h-4 w-4 mr-2" />
-                        Discount
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setSelectedItemForDiscount(item.id)
+                            setShowDiscountDialog(true)
+                          }}
+                        >
+                          <Percent className="h-4 w-4 mr-2" />
+                          Discount
+                        </Button>
+                        <div className="text-xs text-muted-foreground text-center">
+                          Max:{' '}
+                          {item.product.maxDiscountPercent !== undefined &&
+                          item.product.maxDiscountPercent !== null
+                            ? `${item.product.maxDiscountPercent}%`
+                            : `${discountSettings?.maxDiscountPercent || 50}%`}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </Card>
@@ -1015,12 +1080,21 @@ const POSComponent: React.FC<Props> = ({
             <DialogTitle>Apply Discount</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedItem && (
+              <div className="text-sm text-muted-foreground">
+                <p>Product: {selectedItem.product.title}</p>
+                <p>
+                  Maximum discount: {maxDiscountPercent}% ({formatPrice(maxDiscountAmount)})
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="discount-amount">Discount Amount (KES)</Label>
               <Input
                 id="discount-amount"
                 type="number"
                 placeholder="Enter discount amount"
+                max={maxDiscountAmount}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && selectedItemForDiscount) {
                     const discountAmount = Number((e.target as HTMLInputElement).value)

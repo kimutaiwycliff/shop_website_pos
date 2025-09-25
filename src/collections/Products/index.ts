@@ -388,6 +388,18 @@ export const Products: CollectionConfig = {
                     description: 'VAT/tax rate applied to this product',
                   },
                 },
+                {
+                  name: 'maxDiscountPercent',
+                  type: 'number',
+                  label: 'Maximum Discount Percentage',
+                  min: 0,
+                  max: 100,
+                  defaultValue: 50,
+                  admin: {
+                    step: 1,
+                    description: 'Maximum discount percentage allowed for this product (0-100%)',
+                  },
+                },
               ],
             },
             {
@@ -607,29 +619,29 @@ export const Products: CollectionConfig = {
     beforeValidate: [
       async ({ data }) => {
         // Ensure we have data to work with
-        if (!data) return data;
-        
+        if (!data) return data
+
         // Ensure stock is never negative
         if (data.inStock < 0) {
-          data.inStock = 0;
+          data.inStock = 0
         }
-        
+
         // Update status based on stock level
         if (data.inStock === 0) {
-          data.status = 'out-of-stock';
+          data.status = 'out-of-stock'
         } else if (data.status === 'out-of-stock' && data.inStock > 0) {
           // If stock is added to an out-of-stock item, update status
-          data.status = 'published';
+          data.status = 'published'
         }
-        
-        return data;
+
+        return data
       },
     ],
     beforeChange: [
       async ({ data, originalDoc, req }) => {
         // Ensure we have data to work with
-        if (!data) return data;
-        
+        if (!data) return data
+
         // Auto-set the first image as primary if none is set
         if (data.images?.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -651,14 +663,14 @@ export const Products: CollectionConfig = {
         if (data.sku && !data.barcode) {
           data.barcode = generateUPCAFromSKU(data.sku)
         }
-        
+
         // If this is an update operation, check stock changes
         if (originalDoc && originalDoc.inStock !== data.inStock) {
-          const stockDifference = data.inStock - (originalDoc.inStock || 0);
-          
+          const stockDifference = data.inStock - (originalDoc.inStock || 0)
+
           // Log stock changes for audit purposes
           if (stockDifference !== 0) {
-            console.log(`Product ${data.title} stock changed by ${stockDifference} units`);
+            console.log(`Product ${data.title} stock changed by ${stockDifference} units`)
           }
         }
 
@@ -696,7 +708,7 @@ export const Products: CollectionConfig = {
             // This allows the operation to complete even if barcode generation fails
           }
         }
-        
+
         // Check if stock has reached zero and update status accordingly
         if (doc.inStock === 0) {
           try {
