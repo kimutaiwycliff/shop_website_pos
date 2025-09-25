@@ -1060,6 +1060,10 @@ export interface Product {
    */
   trackInventory?: boolean | null;
   /**
+   * Current status of the product
+   */
+  status?: ('published' | 'draft' | 'out-of-stock') | null;
+  /**
    * Select the currency for this product
    */
   currency?: ('KES' | 'USD' | 'EUR') | null;
@@ -2720,6 +2724,7 @@ export interface ProductsSelect<T extends boolean = true> {
   inStock?: T;
   lowStockThreshold?: T;
   trackInventory?: T;
+  status?: T;
   currency?: T;
   weight?: T;
   dimensions?:

@@ -429,6 +429,30 @@ export const Products: CollectionConfig = {
                     description: 'Enable stock tracking for this product',
                   },
                 },
+                {
+                  name: 'status',
+                  type: 'select',
+                  label: 'Product Status',
+                  defaultValue: 'published',
+                  options: [
+                    {
+                      label: 'Published',
+                      value: 'published',
+                    },
+                    {
+                      label: 'Draft',
+                      value: 'draft',
+                    },
+                    {
+                      label: 'Out of Stock',
+                      value: 'out-of-stock',
+                    },
+                  ],
+                  admin: {
+                    description: 'Current status of the product',
+                    position: 'sidebar',
+                  },
+                },
               ],
             },
             {
@@ -580,8 +604,32 @@ export const Products: CollectionConfig = {
   ],
 
   hooks: {
-    beforeChange: [
+    beforeValidate: [
       async ({ data }) => {
+        // Ensure we have data to work with
+        if (!data) return data;
+        
+        // Ensure stock is never negative
+        if (data.inStock < 0) {
+          data.inStock = 0;
+        }
+        
+        // Update status based on stock level
+        if (data.inStock === 0) {
+          data.status = 'out-of-stock';
+        } else if (data.status === 'out-of-stock' && data.inStock > 0) {
+          // If stock is added to an out-of-stock item, update status
+          data.status = 'published';
+        }
+        
+        return data;
+      },
+    ],
+    beforeChange: [
+      async ({ data, originalDoc, req }) => {
+        // Ensure we have data to work with
+        if (!data) return data;
+        
         // Auto-set the first image as primary if none is set
         if (data.images?.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -602,6 +650,16 @@ export const Products: CollectionConfig = {
         // Generate barcode if not provided
         if (data.sku && !data.barcode) {
           data.barcode = generateUPCAFromSKU(data.sku)
+        }
+        
+        // If this is an update operation, check stock changes
+        if (originalDoc && originalDoc.inStock !== data.inStock) {
+          const stockDifference = data.inStock - (originalDoc.inStock || 0);
+          
+          // Log stock changes for audit purposes
+          if (stockDifference !== 0) {
+            console.log(`Product ${data.title} stock changed by ${stockDifference} units`);
+          }
         }
 
         return data
@@ -638,6 +696,28 @@ export const Products: CollectionConfig = {
             // This allows the operation to complete even if barcode generation fails
           }
         }
+        
+        // Check if stock has reached zero and update status accordingly
+        if (doc.inStock === 0) {
+          try {
+            await req.payload.update({
+              collection: 'products',
+              id: doc.id,
+              data: {
+                status: 'out-of-stock', // Use the correct status value
+              } as any,
+            })
+          } catch (error) {
+            console.error('Error updating product status:', error)
+          }
+        }
+      },
+    ],
+    // Add afterDelete hook to handle cleanup if needed
+    afterDelete: [
+      async ({ doc, req }) => {
+        // Any cleanup operations when a product is deleted
+        console.log('Product deleted:', doc.id)
       },
     ],
   },
