@@ -25,6 +25,7 @@ import { SearchResult } from '@/lib/advancedSearch'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import BarcodeScanner from '../../components/BarcodeScanner'
 import { useCart } from '@/providers/CartContext'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type Props = {
   products?: Product[]
@@ -263,117 +264,340 @@ const ProductGridComponent: React.FC<Props> = ({
       ? Math.round(((product.originalPrice! - (product.price || 0)) / product.originalPrice!) * 100)
       : 0
     const { addToCart } = useCart()
+    const [showVariantDialog, setShowVariantDialog] = useState(false)
+    const [selectedColor, setSelectedColor] = useState<number | null>(null)
+    const [selectedSize, setSelectedSize] = useState<number | null>(null)
+
+    const hasColors = product.colors && product.colors.length > 0
+    const hasSizes = product.sizes && product.sizes.length > 0
+
+    const handleAddToCart = () => {
+      if (hasColors || hasSizes) {
+        // Show variant selection dialog
+        setShowVariantDialog(true)
+        setSelectedColor(null)
+        setSelectedSize(null)
+      } else {
+        // No variants, add directly to cart
+        addToCart(product)
+      }
+    }
+
+    const handleAddToCartWithVariants = () => {
+      if (hasColors || hasSizes) {
+        // Create properly typed variant data
+        let selectedColorData:
+          | {
+              colorName: string
+              colorCode: string
+              colorImage?: { url: string; alt: string }
+            }
+          | undefined = undefined
+
+        let selectedSizeData:
+          | {
+              sizeName: string
+              sizeCode: string
+              inStock: boolean
+              stockQuantity: number
+            }
+          | undefined = undefined
+
+        if (selectedColor !== null && product.colors && product.colors.length > selectedColor) {
+          const color = product.colors[selectedColor]
+          selectedColorData = {
+            colorName: color.colorName || '',
+            colorCode: color.colorCode || '#000000',
+            colorImage:
+              color.colorImage && typeof color.colorImage === 'object'
+                ? {
+                    url: (color.colorImage as any).url || '',
+                    alt: (color.colorImage as any).alt || '',
+                  }
+                : undefined,
+          }
+        }
+
+        if (selectedSize !== null && product.sizes && product.sizes.length > selectedSize) {
+          const size = product.sizes[selectedSize]
+          selectedSizeData = {
+            sizeName: size.sizeName || '',
+            sizeCode: size.sizeCode || '',
+            inStock: size.inStock === true,
+            stockQuantity: size.stockQuantity || 0,
+          }
+        }
+
+        addToCart(product, 1, selectedColorData, selectedSizeData)
+      } else {
+        addToCart(product)
+      }
+      setShowVariantDialog(false)
+      setSelectedColor(null)
+      setSelectedSize(null)
+    }
 
     return (
-      <Card
-        className={cn(
-          'group relative overflow-hidden transition-all duration-200 hover:shadow-lg',
-          cardStyle === 'minimal' && 'border-0 shadow-none hover:shadow-md',
-          cardStyle === 'compact' && 'p-2',
-        )}
-      >
-        <div className="relative overflow-hidden">
-          {primaryImage && (
-            <div className="aspect-square relative">
-              <Image
-                src={typeof primaryImage.image === 'object' ? primaryImage.image.url || '' : ''}
-                alt={primaryImage.alt || product.title || ''}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-
-              {showProductBadges && (
-                <div className="absolute top-2 left-2 flex flex-col gap-1">
-                  {hasDiscount && (
-                    <Badge variant="destructive" className="text-xs">
-                      -{discountPercentage}%
-                    </Badge>
-                  )}
-                  {product.inStock === 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      Out of Stock
-                    </Badge>
-                  )}
-                </div>
-              )}
-
-              {(enableWishlist || enableQuickView || showCompare) && (
-                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {enableWishlist && (
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {enableQuickView && (
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {showCompare && (
-                    <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                      <Grid className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
+      <>
+        <Card
+          className={cn(
+            'group relative overflow-hidden transition-all duration-200 hover:shadow-lg',
+            cardStyle === 'minimal' && 'border-0 shadow-none hover:shadow-md',
+            cardStyle === 'compact' && 'p-2',
           )}
-        </div>
+        >
+          <div className="relative overflow-hidden">
+            {primaryImage && (
+              <div className="aspect-square relative">
+                <Image
+                  src={typeof primaryImage.image === 'object' ? primaryImage.image.url || '' : ''}
+                  alt={primaryImage.alt || product.title || ''}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                />
 
-        <CardContent className={cn('p-4', cardStyle === 'compact' && 'p-2')}>
-          <Link href={`/products/${product.slug}`}>
-            <h3 className="font-medium text-sm sm:text-base line-clamp-2 hover:text-primary transition-colors">
-              {product.title}
-            </h3>
-          </Link>
+                {showProductBadges && (
+                  <div className="absolute top-2 left-2 flex flex-col gap-1">
+                    {hasDiscount && (
+                      <Badge variant="destructive" className="text-xs">
+                        -{discountPercentage}%
+                      </Badge>
+                    )}
+                    {product.inStock === 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        Out of Stock
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
-          {product.brand && typeof product.brand === 'object' && 'name' in product.brand && (
-            <p className="text-sm text-muted-foreground mt-1">{(product.brand as Brand).name}</p>
-          )}
-
-          {cardStyle === 'detailed' && product.sku && (
-            <p className="text-xs text-muted-foreground mt-1 font-mono">SKU: {product.sku}</p>
-          )}
-
-          <div className="flex items-center gap-2 mt-2">
-            <span className="font-semibold text-lg">{formatPrice(product.price || 0)}</span>
-            {hasDiscount && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(product.originalPrice!)}
-              </span>
+                {(enableWishlist || enableQuickView || showCompare) && (
+                  <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {enableWishlist && (
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <Heart className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {enableQuickView && (
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {showCompare && (
+                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                        <Grid className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          {cardStyle === 'detailed' && (
-            <div className="mt-2 flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    'h-4 w-4',
-                    i < 4 ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 dark:text-gray-600',
-                  )}
-                />
-              ))}
-              <span className="text-sm text-muted-foreground ml-1">(24)</span>
-            </div>
-          )}
-        </CardContent>
+          <CardContent className={cn('p-4', cardStyle === 'compact' && 'p-2')}>
+            <Link href={`/products/${product.slug}`}>
+              <h3 className="font-medium text-sm sm:text-base line-clamp-2 hover:text-primary transition-colors">
+                {product.title}
+              </h3>
+            </Link>
 
-        <CardFooter className={cn('p-4 pt-0', cardStyle === 'compact' && 'p-2 pt-0')}>
-          <Button
-            className="w-full"
-            size={cardStyle === 'compact' ? 'sm' : 'default'}
-            onClick={(e) => {
-              e.preventDefault()
-              addToCart(product)
-            }}
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Add to Cart
-          </Button>
-        </CardFooter>
-      </Card>
+            {product.brand && typeof product.brand === 'object' && 'name' in product.brand && (
+              <p className="text-sm text-muted-foreground mt-1">{(product.brand as Brand).name}</p>
+            )}
+
+            {cardStyle === 'detailed' && product.sku && (
+              <p className="text-xs text-muted-foreground mt-1 font-mono">SKU: {product.sku}</p>
+            )}
+
+            <div className="flex items-center gap-2 mt-2">
+              <span className="font-semibold text-lg">{formatPrice(product.price || 0)}</span>
+              {hasDiscount && (
+                <span className="text-sm text-muted-foreground line-through">
+                  {formatPrice(product.originalPrice!)}
+                </span>
+              )}
+            </div>
+
+            {cardStyle === 'detailed' && (
+              <div className="mt-2 flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={cn(
+                      'h-4 w-4',
+                      i < 4
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300 dark:text-gray-600',
+                    )}
+                  />
+                ))}
+                <span className="text-sm text-muted-foreground ml-1">(24)</span>
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter className={cn('p-4 pt-0', cardStyle === 'compact' && 'p-2 pt-0')}>
+            <Button
+              className="w-full"
+              size={cardStyle === 'compact' ? 'sm' : 'default'}
+              onClick={(e) => {
+                e.preventDefault()
+                handleAddToCart()
+              }}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Add to Cart
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Variant Selection Dialog */}
+        <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+          <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <DialogHeader>
+              <DialogTitle>Select Variant</DialogTitle>
+            </DialogHeader>
+            {product && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  {product.images?.[0] && (
+                    <div className="w-16 h-16 relative">
+                      <Image
+                        src={
+                          typeof product.images[0].image === 'object'
+                            ? product.images[0].image.url || ''
+                            : ''
+                        }
+                        alt={product.images[0].alt || product.title || ''}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-medium">{product.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formatPrice(product.price || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Color Selection */}
+                {hasColors && product.colors && (
+                  <div>
+                    <label className="text-sm font-medium">Color</label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {product.colors.map((color: any, index: number) => (
+                        <button
+                          key={index}
+                          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                            selectedColor === index
+                              ? 'border-primary ring-2 ring-primary/30'
+                              : 'border-gray-300'
+                          }`}
+                          style={{ backgroundColor: color.colorCode || '#ccc' }}
+                          onClick={() => setSelectedColor(index)}
+                          title={color.colorName}
+                        >
+                          {selectedColor === index && (
+                            <div className="w-3 h-3 rounded-full bg-white"></div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Size Selection */}
+                {hasSizes && product.sizes && (
+                  <div>
+                    <label className="text-sm font-medium">Size</label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {product.sizes.map((size: any, index: number) => (
+                        <button
+                          key={index}
+                          className={`px-3 py-2 text-sm rounded border ${
+                            selectedSize === index
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : size.inStock === true
+                                ? 'border-gray-300 hover:border-gray-400'
+                                : 'opacity-50 cursor-not-allowed'
+                          } ${!(size.inStock === true) ? 'line-through' : ''}`}
+                          onClick={() => size.inStock === true && setSelectedSize(index)}
+                          disabled={!(size.inStock === true)}
+                          title={size.sizeName}
+                        >
+                          {size.sizeName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stock Information */}
+                {(hasColors || hasSizes) && (selectedColor !== null || selectedSize !== null) && (
+                  <div className="text-sm text-muted-foreground">
+                    {(() => {
+                      let stockInfo = ''
+                      let stockAvailable = product.inStock || 0
+
+                      if (
+                        selectedColor !== null &&
+                        product.colors &&
+                        product.colors.length > selectedColor
+                      ) {
+                        stockInfo += `${product.colors[selectedColor].colorName}`
+                      }
+
+                      if (
+                        selectedSize !== null &&
+                        product.sizes &&
+                        product.sizes.length > selectedSize
+                      ) {
+                        const size = product.sizes[selectedSize]
+                        stockInfo += stockInfo ? ` / ${size.sizeName}` : size.sizeName
+                        stockAvailable = size.stockQuantity || 0
+                      }
+
+                      return (
+                        <p>
+                          {stockInfo && `${stockInfo} - `}
+                          <span className={stockAvailable > 0 ? 'text-green-600' : 'text-red-600'}>
+                            {stockAvailable > 0 ? `${stockAvailable} in stock` : 'Out of stock'}
+                          </span>
+                        </p>
+                      )
+                    })()}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowVariantDialog(false)
+                      setSelectedColor(null)
+                      setSelectedSize(null)
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddToCartWithVariants}
+                    disabled={Boolean(
+                      (hasColors && selectedColor === null) || (hasSizes && selectedSize === null),
+                    )}
+                    className="flex-1"
+                  >
+                    Add to Cart
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 

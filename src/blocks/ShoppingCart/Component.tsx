@@ -178,6 +178,20 @@ const ShoppingCartComponent: React.FC<Props> = ({
                                   {item.product.brand.name}
                                 </p>
                               )}
+                              {/* Display variant information */}
+                              {item.selectedColor && (
+                                <p
+                                  className="text-sm text-muted-foreground"
+                                  style={{ color: item.selectedColor.colorCode }}
+                                >
+                                  Color: {item.selectedColor.colorName}
+                                </p>
+                              )}
+                              {item.selectedSize && (
+                                <p className="text-sm text-muted-foreground">
+                                  Size: {item.selectedSize.sizeName}
+                                </p>
+                              )}
                             </div>
                             <Button
                               variant="ghost"
