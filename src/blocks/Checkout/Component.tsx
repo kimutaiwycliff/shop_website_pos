@@ -636,7 +636,7 @@ const CheckoutComponent: React.FC<Props> = ({
                   <div className="space-y-3">
                     {cartItems.map((item) => (
                       <div
-                        key={`${item.product.id}-${item.quantity}`}
+                        key={`${item.product.id}-${item.selectedColor?.colorName || 'nocolor'}-${item.selectedSize?.sizeName || 'nosize'}`}
                         className="flex items-center gap-3"
                       >
                         {item.product.images?.[0] &&
@@ -654,6 +654,17 @@ const CheckoutComponent: React.FC<Props> = ({
                           <h4 className="text-sm font-medium">{item.product.title}</h4>
                           <div className="text-xs text-muted-foreground">
                             Qty: {item.quantity}
+                            {item.selectedColor && (
+                              <span
+                                className="ml-2"
+                                style={{ color: item.selectedColor.colorCode }}
+                              >
+                                {item.selectedColor.colorName}
+                              </span>
+                            )}
+                            {item.selectedSize && (
+                              <span className="ml-2">Size: {item.selectedSize.sizeName}</span>
+                            )}
                             {item.product.brand && typeof item.product.brand === 'object' && (
                               <span className="ml-2">{item.product.brand.name}</span>
                             )}

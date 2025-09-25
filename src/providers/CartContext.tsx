@@ -7,11 +7,31 @@ import { toast } from 'sonner'
 interface CartItem {
   product: Product
   quantity: number
+  // Add variant information
+  selectedColor?: {
+    colorName: string
+    colorCode: string
+    colorImage?: {
+      url: string
+      alt: string
+    }
+  }
+  selectedSize?: {
+    sizeName: string
+    sizeCode: string
+    inStock: boolean
+    stockQuantity: number
+  }
 }
 
 interface CartContextType {
   cartItems: CartItem[]
-  addToCart: (product: Product, quantity?: number) => void
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    selectedColor?: CartItem['selectedColor'],
+    selectedSize?: CartItem['selectedSize'],
+  ) => void
   removeFromCart: (productId: number) => void
   updateQuantity: (productId: number, quantity: number) => void
   clearCart: () => void
@@ -41,19 +61,57 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('cart', JSON.stringify(cartItems))
   }, [cartItems])
 
-  const addToCart = (product: Product, quantity: number = 1) => {
-    const existingItem = cartItems.find((item) => item.product.id === product.id)
+  const addToCart = (
+    product: Product,
+    quantity: number = 1,
+    selectedColor?: CartItem['selectedColor'],
+    selectedSize?: CartItem['selectedSize'],
+  ) => {
+    // Create a unique key for the cart item that includes variant information
+    const cartItemKey = `${product.id}-${selectedColor?.colorName || 'nocolor'}-${selectedSize?.sizeName || 'nosize'}`
+
+    const existingItem = cartItems.find((item) => {
+      const itemKey = `${item.product.id}-${item.selectedColor?.colorName || 'nocolor'}-${item.selectedSize?.sizeName || 'nosize'}`
+      return itemKey === cartItemKey
+    })
 
     if (existingItem) {
       const newQuantity = existingItem.quantity + quantity
+      // Get stock information for the selected variant
+      const stockAvailable = selectedSize ? selectedSize.stockQuantity : product.inStock
+
+      if (newQuantity > stockAvailable) {
+        toast.error(`Cannot add more items. Only ${stockAvailable} in stock.`)
+        return
+      }
+
       setCartItems((prevItems) =>
-        prevItems.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: newQuantity } : item,
-        ),
+        prevItems.map((item) => {
+          const itemKey = `${item.product.id}-${item.selectedColor?.colorName || 'nocolor'}-${item.selectedSize?.sizeName || 'nosize'}`
+          if (itemKey === cartItemKey) {
+            return { ...item, quantity: newQuantity }
+          }
+          return item
+        }),
       )
       toast.success(`Added ${quantity} more ${product.title} to cart. Total: ${newQuantity}`)
     } else {
-      setCartItems((prevItems) => [...prevItems, { product, quantity }])
+      // Get stock information for the selected variant
+      const stockAvailable = selectedSize ? selectedSize.stockQuantity : product.inStock
+
+      if (quantity > stockAvailable) {
+        toast.error(`Cannot add more items. Only ${stockAvailable} in stock.`)
+        return
+      }
+
+      const newItem: CartItem = {
+        product,
+        quantity,
+        selectedColor,
+        selectedSize,
+      }
+
+      setCartItems((prevItems) => [...prevItems, newItem])
       toast.success(`Added ${product.title} to cart`)
     }
   }

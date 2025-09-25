@@ -66,6 +66,21 @@ interface POSItem {
     }>
     inStock: number
     maxDiscountPercent?: number
+    // Add variant information
+    selectedColor?: {
+      colorName: string
+      colorCode: string
+      colorImage?: {
+        url: string
+        alt: string
+      }
+    }
+    selectedSize?: {
+      sizeName: string
+      sizeCode: string
+      inStock: boolean
+      stockQuantity: number
+    }
   }
   quantity: number
   unitPrice: number
@@ -118,6 +133,13 @@ const POSComponent: React.FC<Props> = ({
   const [showVatDialog, setShowVatDialog] = useState(false)
   const [customTaxRate, setCustomTaxRate] = useState<number | null>(null)
   const [customTaxIncluded, setCustomTaxIncluded] = useState<boolean | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [selectedColor, setSelectedColor] = useState<number | null>(null)
+  const [selectedSize, setSelectedSize] = useState<number | null>(null)
+  const [showVariantDialog, setShowVariantDialog] = useState(false)
+  const [selectedVariants, setSelectedVariants] = useState<
+    Record<string, { colorIndex?: number; sizeIndex?: number }>
+  >({})
 
   // Mock products data - replace with real API call
   const [mockProducts] = useState([
@@ -360,37 +382,94 @@ const POSComponent: React.FC<Props> = ({
   }, [fetchProducts])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleProductClick = (product: any) => {
+    // Check if product has variants
+    const hasColors = product.colors && product.colors.length > 0
+    const hasSizes = product.sizes && product.sizes.length > 0
+
+    if (hasColors || hasSizes) {
+      // Show variant selection dialog
+      setSelectedProduct(product)
+      setSelectedColor(null)
+      setSelectedSize(null)
+      setShowVariantDialog(true)
+    } else {
+      // No variants, add directly to cart
+      addToCart(product)
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addToCart = (product: any) => {
     console.log('Adding product to cart:', product.title, 'Stock available:', product.inStock)
 
-    // Check if product is in stock
-    if (product.inStock <= 0) {
-      console.log('Product is out of stock:', product.title)
-      alert('This product is out of stock and cannot be added to the cart.')
+    // Check if product/variant is in stock
+    let stockAvailable = product.inStock
+    let variantInfo = ''
+
+    // If we have selected variants, use their stock info
+    if (selectedProduct && (selectedColor !== null || selectedSize !== null)) {
+      if (selectedColor !== null && product.colors && product.colors[selectedColor]) {
+        const color = product.colors[selectedColor]
+        variantInfo += ` ${color.colorName}`
+      }
+
+      if (selectedSize !== null && product.sizes && product.sizes[selectedSize]) {
+        const size = product.sizes[selectedSize]
+        variantInfo += ` ${size.sizeName}`
+        stockAvailable = size.stockQuantity
+      }
+    }
+
+    if (stockAvailable <= 0) {
+      console.log('Product/variant is out of stock:', product.title + variantInfo)
+      alert(`This product/variant is out of stock and cannot be added to the cart.`)
       return
     }
 
-    const existingItem = cart.find((item) => item.product.id === product.id)
+    // Create a unique ID for the cart item that includes variant information
+    const cartItemId = selectedProduct
+      ? `${product.id}-${selectedColor !== null ? selectedColor : 'nocolor'}-${selectedSize !== null ? selectedSize : 'nosize'}`
+      : product.id
+
+    const existingItem = cart.find((item) => item.id === cartItemId)
 
     if (existingItem) {
       // Check if adding another would exceed stock
-      if (existingItem.quantity >= product.inStock) {
-        console.log('Cannot add more of this product. Stock limit reached for:', product.title)
-        alert(`Cannot add more of this product. Only ${product.inStock} items in stock.`)
+      if (existingItem.quantity >= stockAvailable) {
+        console.log(
+          'Cannot add more of this product/variant. Stock limit reached for:',
+          product.title + variantInfo,
+        )
+        alert(`Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`)
         return
       }
-      console.log('Updating quantity for existing item:', product.title)
-      updateQuantity(existingItem.id, existingItem.quantity + 1)
+      console.log('Updating quantity for existing item:', product.title + variantInfo)
+      updateQuantity(cartItemId, existingItem.quantity + 1)
     } else {
-      console.log('Adding new item to cart:', product.title)
+      console.log('Adding new item to cart:', product.title + variantInfo)
+
+      // Create the cart item with variant information
       const newItem: POSItem = {
-        id: Date.now().toString(),
-        product,
+        id: cartItemId,
+        product: {
+          ...product,
+          // Add selected variant information
+          selectedColor:
+            selectedColor !== null && product.colors && product.colors[selectedColor]
+              ? product.colors[selectedColor]
+              : undefined,
+          selectedSize:
+            selectedSize !== null && product.sizes && product.sizes[selectedSize]
+              ? product.sizes[selectedSize]
+              : undefined,
+        },
         quantity: 1,
         unitPrice: product.price,
         discount: 0,
         lineTotal: product.price,
       }
+
       setCart([...cart, newItem])
     }
 
@@ -398,10 +477,25 @@ const POSComponent: React.FC<Props> = ({
     searchInputRef.current?.focus()
   }
 
+  const handleAddToCartWithVariants = () => {
+    if (selectedProduct) {
+      addToCart(selectedProduct)
+      setShowVariantDialog(false)
+      setSelectedProduct(null)
+      setSelectedColor(null)
+      setSelectedSize(null)
+    }
+  }
+
   const updateQuantity = (itemId: string, newQuantity: number) => {
     const item = cart.find((item) => item.id === itemId)
 
     if (!item) return
+
+    // Get stock information for the item (considering variants)
+    const stockAvailable = item.product.selectedSize
+      ? item.product.selectedSize.stockQuantity
+      : item.product.inStock
 
     console.log(
       'Updating quantity for item:',
@@ -409,13 +503,13 @@ const POSComponent: React.FC<Props> = ({
       'New quantity:',
       newQuantity,
       'Stock available:',
-      item.product.inStock,
+      stockAvailable,
     )
 
     // Check if new quantity exceeds stock
-    if (newQuantity > item.product.inStock) {
+    if (newQuantity > stockAvailable) {
       console.log('Cannot update quantity. Stock limit reached for:', item.product.title)
-      alert(`Cannot add more of this product. Only ${item.product.inStock} items in stock.`)
+      alert(`Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`)
       return
     }
 
@@ -598,6 +692,14 @@ const POSComponent: React.FC<Props> = ({
     setShowVatDialog(false)
   }
 
+  // Function to select a variant for a product
+  const selectVariant = (productId: string, colorIndex?: number, sizeIndex?: number) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [productId]: { colorIndex, sizeIndex },
+    }))
+  }
+
   if (isLocked) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
@@ -742,7 +844,7 @@ const POSComponent: React.FC<Props> = ({
                     'cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
                     product.inStock <= 0 && 'opacity-50 cursor-not-allowed',
                   )}
-                  onClick={() => product.inStock > 0 && addToCart(product)}
+                  onClick={() => product.inStock > 0 && handleProductClick(product)}
                 >
                   <CardContent className="p-3">
                     {product.images?.[0] && (
@@ -778,11 +880,183 @@ const POSComponent: React.FC<Props> = ({
                         {product.inStock > 0 ? `${product.inStock} in stock` : 'Out of stock'}
                       </Badge>
                     </div>
+
+                    {/* Add to Cart button for products without variants */}
+                    {!(
+                      (product.colors && product.colors.length > 0) ||
+                      (product.sizes && product.sizes.length > 0)
+                    ) && (
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          product.inStock > 0 && addToCart(product)
+                        }}
+                        disabled={product.inStock <= 0}
+                      >
+                        Add to Cart
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))
             )}
           </div>
+
+          {/* Variant Selection Dialog */}
+          <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+            <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <DialogHeader>
+                <DialogTitle>Select Variant</DialogTitle>
+              </DialogHeader>
+              {selectedProduct && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    {selectedProduct.images?.[0] && (
+                      <div className="w-16 h-16 relative">
+                        <Image
+                          src={selectedProduct.images[0].image.url}
+                          alt={selectedProduct.images[0].image.alt}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-medium">{selectedProduct.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {formatPrice(selectedProduct.price)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Color Selection */}
+                  {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                    <div>
+                      <Label>Color</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedProduct.colors.map((color: any, index: number) => (
+                          <button
+                            key={index}
+                            className={cn(
+                              'w-8 h-8 rounded-full border-2 flex items-center justify-center',
+                              selectedColor === index
+                                ? 'border-primary ring-2 ring-primary/30'
+                                : 'border-gray-300',
+                            )}
+                            style={{ backgroundColor: color.colorCode }}
+                            onClick={() => setSelectedColor(index)}
+                            title={color.colorName}
+                          >
+                            {selectedColor === index && (
+                              <div className="w-3 h-3 rounded-full bg-white"></div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Size Selection */}
+                  {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
+                    <div>
+                      <Label>Size</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedProduct.sizes.map((size: any, index: number) => (
+                          <button
+                            key={index}
+                            className={cn(
+                              'px-3 py-2 text-sm rounded border',
+                              selectedSize === index
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : size.inStock
+                                  ? 'border-gray-300 hover:border-gray-400'
+                                  : 'opacity-50 cursor-not-allowed',
+                              !size.inStock && 'line-through',
+                            )}
+                            onClick={() => size.inStock && setSelectedSize(index)}
+                            disabled={!size.inStock}
+                            title={size.sizeName}
+                          >
+                            {size.sizeName}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stock Information */}
+                  {selectedProduct && (selectedColor !== null || selectedSize !== null) && (
+                    <div className="text-sm text-muted-foreground">
+                      {(() => {
+                        let stockInfo = ''
+                        let stockAvailable = selectedProduct.inStock
+
+                        if (
+                          selectedColor !== null &&
+                          selectedProduct.colors &&
+                          selectedProduct.colors[selectedColor]
+                        ) {
+                          stockInfo += `${selectedProduct.colors[selectedColor].colorName}`
+                        }
+
+                        if (
+                          selectedSize !== null &&
+                          selectedProduct.sizes &&
+                          selectedProduct.sizes[selectedSize]
+                        ) {
+                          const size = selectedProduct.sizes[selectedSize]
+                          stockInfo += stockInfo ? ` / ${size.sizeName}` : size.sizeName
+                          stockAvailable = size.stockQuantity
+                        }
+
+                        return (
+                          <p>
+                            {stockInfo && `${stockInfo} - `}
+                            <span
+                              className={stockAvailable > 0 ? 'text-green-600' : 'text-red-600'}
+                            >
+                              {stockAvailable > 0 ? `${stockAvailable} in stock` : 'Out of stock'}
+                            </span>
+                          </p>
+                        )
+                      })()}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowVariantDialog(false)
+                        setSelectedProduct(null)
+                        setSelectedColor(null)
+                        setSelectedSize(null)
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleAddToCartWithVariants}
+                      disabled={
+                        (selectedProduct.colors &&
+                          selectedProduct.colors.length > 0 &&
+                          selectedColor === null) ||
+                        (selectedProduct.sizes &&
+                          selectedProduct.sizes.length > 0 &&
+                          selectedSize === null)
+                      }
+                      className="flex-1"
+                    >
+                      Add to Cart
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Right Panel - Cart */}
