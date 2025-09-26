@@ -1500,6 +1500,8 @@ This would typically be sent to the supplier via email or integrated with a proc
                       <TableHead className="text-foreground">Suggested Order</TableHead>
                       <TableHead className="text-foreground">Supplier</TableHead>
                       <TableHead className="text-foreground">Lead Time</TableHead>
+                      <TableHead className="text-foreground">Cost Price</TableHead>
+                      <TableHead className="text-foreground">Selling Price</TableHead>
                       <TableHead className="text-foreground">Total Cost</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1524,6 +1526,8 @@ This would typically be sent to the supplier via email or integrated with a proc
                             </TableCell>
                             <TableCell>{item.supplier.name}</TableCell>
                             <TableCell>{item.supplier.leadTime} days</TableCell>
+                            <TableCell className="font-medium">{formatPrice(item.costPrice)}</TableCell>
+                            <TableCell className="font-medium">{formatPrice(item.product.price)}</TableCell>
                             <TableCell className="font-medium">{formatPrice(totalCost)}</TableCell>
                           </TableRow>
                         )
