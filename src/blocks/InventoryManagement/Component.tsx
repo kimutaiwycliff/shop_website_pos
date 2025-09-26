@@ -1526,8 +1526,12 @@ This would typically be sent to the supplier via email or integrated with a proc
                             </TableCell>
                             <TableCell>{item.supplier.name}</TableCell>
                             <TableCell>{item.supplier.leadTime} days</TableCell>
-                            <TableCell className="font-medium">{formatPrice(item.costPrice)}</TableCell>
-                            <TableCell className="font-medium">{formatPrice(item.product.price)}</TableCell>
+                            <TableCell className="font-medium">
+                              {formatPrice(item.costPrice)}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {formatPrice(item.product.price)}
+                            </TableCell>
                             <TableCell className="font-medium">{formatPrice(totalCost)}</TableCell>
                           </TableRow>
                         )
