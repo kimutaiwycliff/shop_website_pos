@@ -478,7 +478,14 @@ const InventoryManagementComponent: React.FC<Props> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'in_stock':
-        return <Badge variant="default">In Stock</Badge>
+        return (
+          <Badge 
+            variant="default" 
+            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+          >
+            In Stock
+          </Badge>
+        )
       case 'low_stock':
         return (
           <Badge
@@ -501,13 +508,20 @@ const InventoryManagementComponent: React.FC<Props> = ({
         return (
           <Badge
             variant="outline"
-            className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-border"
           >
             Discontinued
           </Badge>
         )
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return (
+          <Badge 
+            variant="outline" 
+            className="border-border text-foreground"
+          >
+            Unknown
+          </Badge>
+        )
     }
   }
 
@@ -634,9 +648,92 @@ const InventoryManagementComponent: React.FC<Props> = ({
     setShowReorderDialog(true)
   }
 
+  const exportReorderReport = () => {
+    const itemsToReorder = inventoryData.filter((item) => reorderItems.includes(item.id))
+    
+    // Create CSV content
+    const headers = ['Product Name', 'SKU', 'Current Stock', 'Reorder Point', 'Suggested Order Quantity', 'Supplier', 'Lead Time (Days)', 'Cost Price', 'Total Cost']
+    const rows = itemsToReorder.map(item => [
+      item.product.title,
+      item.product.sku,
+      item.currentStock.toString(),
+      item.reorderPoint.toString(),
+      Math.max(10, item.reorderPoint * 2).toString(), // Suggested order quantity
+      item.supplier.name,
+      item.supplier.leadTime.toString(),
+      formatPrice(item.costPrice),
+      formatPrice(item.costPrice * Math.max(10, item.reorderPoint * 2))
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `reorder-report-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const exportInventory = () => {
-    console.log('Exporting inventory data...')
-    // Implementation for exporting inventory data
+    // Create CSV content
+    const headers = ['Product Name', 'SKU', 'Barcode', 'Current Stock', 'Min Stock Level', 'Max Stock Level', 'Reorder Point', 'Status', 'Location', 'Supplier', 'Cost Price', 'Total Value']
+    const rows = inventoryData.map(item => [
+      item.product.title,
+      item.product.sku,
+      item.product.barcode || '',
+      item.currentStock.toString(),
+      item.minStockLevel.toString(),
+      item.maxStockLevel.toString(),
+      item.reorderPoint.toString(),
+      item.status,
+      `${item.location.warehouse} - ${item.location.aisle}-${item.location.shelf}`,
+      item.supplier.name,
+      formatPrice(item.costPrice),
+      formatPrice(item.totalValue)
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `inventory-report-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const generatePurchaseOrder = () => {
+    const itemsToOrder = inventoryData.filter((item) => reorderItems.includes(item.id))
+    
+    // In a real implementation, this would generate a proper purchase order
+    // For now, we'll just show an alert with the items that would be ordered
+    const orderDetails = itemsToOrder.map(item => {
+      const suggestedOrder = Math.max(10, item.reorderPoint * 2)
+      return `${item.product.title} - ${suggestedOrder} units from ${item.supplier.name}`
+    }).join('\n')
+    
+    alert(`Purchase Order Generated!
+
+Items to order:
+${orderDetails}
+
+This would typically be sent to the supplier via email or integrated with a procurement system.`)
+    setShowReorderDialog(false)
   }
 
   // Barcode scanning functionality
@@ -770,8 +867,8 @@ const InventoryManagementComponent: React.FC<Props> = ({
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center h-64">
-            <RefreshCw className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading inventory data...</span>
+            <RefreshCw className="h-8 w-8 animate-spin text-foreground" />
+            <span className="ml-2 text-foreground">Loading inventory data...</span>
           </div>
         </div>
       </section>
@@ -785,9 +882,14 @@ const InventoryManagementComponent: React.FC<Props> = ({
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Inventory</h3>
+              <h3 className="text-lg font-medium mb-2 text-foreground">Error Loading Inventory</h3>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>Retry</Button>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Retry
+              </Button>
             </div>
           </div>
         </div>
@@ -801,7 +903,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{title}</h1>
+            <h1 className="text-3xl font-bold mb-2 text-foreground">{title}</h1>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <span>{inventoryData.length} products</span>
               <span>{totalItems} total units</span>
@@ -810,15 +912,30 @@ const InventoryManagementComponent: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => setShowAddProductDialog(true)}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAddProductDialog(true)}
+              className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
-            <Button variant="outline" size="sm" onClick={generateReorderReport}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={generateReorderReport}
+              className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+            >
               <BarChart3 className="h-4 w-4 mr-2" />
               Reorder Report
             </Button>
-            <Button variant="outline" size="sm" onClick={exportInventory}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportInventory}
+              className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -827,9 +944,9 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
         {/* Stock Alerts */}
         {enableStockAlerts && stockAlerts.length > 0 && (
-          <Card className="mb-6 border-orange-200 bg-orange-50">
+          <Card className="mb-6 border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-900">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-orange-800">
+              <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
                 <AlertTriangle className="h-5 w-5" />
                 Stock Alerts ({stockAlerts.length})
               </CardTitle>
@@ -839,10 +956,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 {stockAlerts.slice(0, 6).map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 bg-white rounded border"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-border"
                   >
                     <div>
-                      <div className="font-medium text-sm">{item.product.title}</div>
+                      <div className="font-medium text-sm text-foreground">{item.product.title}</div>
                       <div className="text-xs text-muted-foreground">
                         {item.currentStock} units (min: {item.minStockLevel})
                       </div>
@@ -851,22 +968,34 @@ const InventoryManagementComponent: React.FC<Props> = ({
                   </div>
                 ))}
               </div>
-              {stockAlerts.length > 6 && (
-                <div className="text-center mt-3">
-                  <Button variant="outline" size="sm">
+              <div className="flex justify-center gap-2 mt-3">
+                {stockAlerts.length > 6 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
                     View All {stockAlerts.length} Alerts
                   </Button>
-                </div>
-              )}
+                )}
+                <Button 
+                  size="sm" 
+                  onClick={generateReorderReport}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Generate Reorder Report
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Restock Items */}
+        {/* Restock Items
         {restockItems.length > 0 && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
+          <Card className="mb-6 border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-800">
+              <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
                 <AlertTriangle className="h-5 w-5" />
                 Items Needing Restock ({restockItems.length})
               </CardTitle>
@@ -876,33 +1005,49 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 {restockItems.slice(0, 6).map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 bg-white rounded border"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-border"
                   >
                     <div>
-                      <div className="font-medium text-sm">{item.product.title}</div>
+                      <div className="font-medium text-sm text-foreground">{item.product.title}</div>
                       <div className="text-xs text-muted-foreground">
                         {item.currentStock} units (reorder at: {item.reorderPoint})
                       </div>
                     </div>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    <Badge 
+                      variant="secondary" 
+                      className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    >
                       Restock
                     </Badge>
                   </div>
                 ))}
               </div>
-              {restockItems.length > 6 && (
-                <div className="text-center mt-3">
-                  <Button variant="outline" size="sm" onClick={generateReorderReport}>
+              <div className="flex justify-center gap-2 mt-3">
+                {restockItems.length > 6 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={generateReorderReport}
+                    className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
                     View All {restockItems.length} Items
                   </Button>
-                </div>
-              )}
+                )}
+                <Button 
+                  size="sm" 
+                  onClick={generateReorderReport}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Generate Reorder Report
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         {/* Filters and Search */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-card text-card-foreground border-border">
           <CardContent className="p-4">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
@@ -931,14 +1076,18 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 <div className="flex gap-2">
                   <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
                         <ScanLine className="h-4 w-4 mr-2" />
                         Scan Barcode
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-md bg-background text-foreground">
                       <DialogHeader>
-                        <DialogTitle>Scan Product Barcode</DialogTitle>
+                        <DialogTitle className="text-foreground">Scan Product Barcode</DialogTitle>
                       </DialogHeader>
                       <BarcodeScanner
                         onScan={handleBarcodeScan}
@@ -957,7 +1106,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       value={barcodeInput}
                       onChange={(e) => setBarcodeInput(e.target.value)}
                       onKeyDown={handleBarcodeInput}
-                      className="pl-10"
+                      className="pl-10 border-input text-foreground bg-background"
                     />
                   </div>
                 </div>
@@ -965,10 +1114,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
               <div className="items-center gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40 border-input text-foreground bg-background">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background text-foreground border-border">
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="in_stock">In Stock</SelectItem>
                     <SelectItem value="low_stock">Low Stock</SelectItem>
@@ -978,10 +1127,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40 border-input text-foreground bg-background">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background text-foreground border-border">
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="sku">SKU</SelectItem>
                     <SelectItem value="stock_asc">Stock (Low to High)</SelectItem>
@@ -990,26 +1139,45 @@ const InventoryManagementComponent: React.FC<Props> = ({
                   </SelectContent>
                 </Select>
 
-                <Button variant="outline" size="sm" onClick={() => fetchProducts()}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fetchProducts()}
+                  className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {enableBulkActions && selectedItems.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-blue-800">
+                  <span className="text-sm text-blue-800 dark:text-blue-200">
                     {selectedItems.length} item(s) selected
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={handleBulkAdjustment}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={handleBulkAdjustment}
+                      className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
                       Bulk Adjust
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
                       Bulk Transfer
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setSelectedItems([])}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setSelectedItems([])}
+                      className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
                       Clear Selection
                     </Button>
                   </div>
@@ -1020,13 +1188,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
         </Card>
 
         {/* Inventory Table */}
-        <Card>
+        <Card className="bg-card text-card-foreground border-border">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   {enableBulkActions && (
-                    <TableHead className="w-12">
+                    <TableHead className="w-12 text-foreground">
                       <Checkbox
                         checked={selectedItems.length === filteredAndSortedData.length}
                         onCheckedChange={(checked) => {
@@ -1039,20 +1207,23 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       />
                     </TableHead>
                   )}
-                  <TableHead>Product</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Barcode</TableHead>
-                  <TableHead>Current Stock</TableHead>
-                  <TableHead>Min/Max</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-foreground">Product</TableHead>
+                  <TableHead className="text-foreground">SKU</TableHead>
+                  <TableHead className="text-foreground">Barcode</TableHead>
+                  <TableHead className="text-foreground">Current Stock</TableHead>
+                  <TableHead className="text-foreground">Min/Max</TableHead>
+                  <TableHead className="text-foreground">Status</TableHead>
+                  <TableHead className="text-foreground">Location</TableHead>
+                  <TableHead className="text-foreground">Value</TableHead>
+                  <TableHead className="text-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAndSortedData.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow 
+                    key={item.id} 
+                    className="hover:bg-muted/30 border-border"
+                  >
                     {enableBulkActions && (
                       <TableCell>
                         <Checkbox
@@ -1080,7 +1251,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                           </div>
                         )}
                         <div>
-                          <div className="font-medium">{item.product.title}</div>
+                          <div className="font-medium text-foreground">{item.product.title}</div>
                           <div className="text-sm text-muted-foreground">
                             {formatPrice(item.product.price)}
                           </div>
@@ -1088,13 +1259,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                      <code className="text-sm bg-muted px-2 py-1 rounded text-foreground">
                         {item.product.sku}
                       </code>
                     </TableCell>
                     <TableCell>
                       {item.product.barcode ? (
-                        <code className="text-xs bg-blue-50 px-2 py-1 rounded font-mono">
+                        <code className="text-xs bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded font-mono text-blue-800 dark:text-blue-200">
                           {item.product.barcode}
                         </code>
                       ) : (
@@ -1103,7 +1274,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.currentStock}</span>
+                        <span className="font-medium text-foreground">{item.currentStock}</span>
                         {item.currentStock <= item.reorderPoint && (
                           <AlertTriangle className="h-4 w-4 text-orange-500" />
                         )}
@@ -1116,7 +1287,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                     </TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell>
-                      <div className="text-sm">
+                      <div className="text-sm text-foreground">
                         <div>{item.location.warehouse}</div>
                         <div className="text-muted-foreground">
                           {item.location.aisle}-{item.location.shelf}
@@ -1125,7 +1296,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium">{formatPrice(item.totalValue)}</div>
+                        <div className="font-medium text-foreground">{formatPrice(item.totalValue)}</div>
                         <div className="text-muted-foreground">@ {formatPrice(item.costPrice)}</div>
                       </div>
                     </TableCell>
@@ -1143,16 +1314,17 @@ const InventoryManagementComponent: React.FC<Props> = ({
                               size="sm"
                               variant="outline"
                               onClick={() => setSelectedItemForAdjustment(item.id)}
+                              className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="bg-background text-foreground">
                             <DialogHeader>
-                              <DialogTitle>
+                              <DialogTitle className="text-foreground">
                                 Adjust Stock - {item.product.title}
                                 {scannedProduct?.id === item.id && (
-                                  <Badge className="ml-2 bg-green-100 text-green-800">
+                                  <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                     Scanned
                                   </Badge>
                                 )}
@@ -1161,7 +1333,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                             <div className="space-y-4">
                               <div className="flex items-center gap-4">
                                 <div>
-                                  <Label>Current Stock: {item.currentStock}</Label>
+                                  <Label className="text-foreground">Current Stock: {item.currentStock}</Label>
                                 </div>
                                 {item.product.barcode && (
                                   <div>
@@ -1172,12 +1344,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                                 )}
                               </div>
                               <div>
-                                <Label htmlFor="adjustment">Adjustment</Label>
+                                <Label htmlFor="adjustment" className="text-foreground">Adjustment</Label>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => setAdjustmentQuantity((prev) => prev - 1)}
+                                    className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </Button>
@@ -1186,12 +1359,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                                     type="number"
                                     value={adjustmentQuantity}
                                     onChange={(e) => setAdjustmentQuantity(Number(e.target.value))}
-                                    className="w-20 text-center"
+                                    className="w-20 text-center border-input text-foreground bg-background"
                                   />
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => setAdjustmentQuantity((prev) => prev + 1)}
+                                    className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                                   >
                                     <Plus className="h-3 w-3" />
                                   </Button>
@@ -1201,15 +1375,15 @@ const InventoryManagementComponent: React.FC<Props> = ({
                                 </div>
                               </div>
                               <div>
-                                <Label htmlFor="reason">Reason</Label>
+                                <Label htmlFor="reason" className="text-foreground">Reason</Label>
                                 <Select
                                   value={adjustmentReason}
                                   onValueChange={setAdjustmentReason}
                                 >
-                                  <SelectTrigger>
+                                  <SelectTrigger className="border-input text-foreground bg-background">
                                     <SelectValue placeholder="Select reason" />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="bg-background text-foreground border-border">
                                     <SelectItem value="restock">Restock</SelectItem>
                                     <SelectItem value="damage">Damage/Loss</SelectItem>
                                     <SelectItem value="return">Customer Return</SelectItem>
@@ -1229,7 +1403,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                                   )
                                 }
                                 disabled={!adjustmentReason}
-                                className="w-full"
+                                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                               >
                                 Apply Adjustment
                               </Button>
@@ -1242,13 +1416,18 @@ const InventoryManagementComponent: React.FC<Props> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => viewStockHistory(item)}
+                            className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                           >
                             <History className="h-3 w-3" />
                           </Button>
                         )}
 
                         {enableStockTransfers && (
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                          >
                             <Truck className="h-3 w-3" />
                           </Button>
                         )}
@@ -1262,7 +1441,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
             {filteredAndSortedData.length === 0 && (
               <div className="text-center py-12">
                 <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No inventory found</h3>
+                <h3 className="text-lg font-medium mb-2 text-foreground">No inventory found</h3>
                 <p className="text-muted-foreground">
                   {searchQuery ? 'Try adjusting your search criteria' : 'No products in inventory'}
                 </p>
@@ -1273,42 +1452,79 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
         {/* Reorder Dialog */}
         <Dialog open={showReorderDialog} onOpenChange={setShowReorderDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle>Reorder Report</DialogTitle>
+              <DialogTitle className="text-foreground">Reorder Report</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 The following items are at or below their reorder point:
               </p>
-              <div className="space-y-3">
-                {inventoryData
-                  .filter((item) => reorderItems.includes(item.id))
-                  .map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 border rounded"
-                    >
-                      <div>
-                        <div className="font-medium">{item.product.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Current: {item.currentStock} | Reorder Point: {item.reorderPoint}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">Suggested: 10 units</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.supplier.name} ({item.supplier.leadTime} days)
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <div className="rounded-md border bg-card text-card-foreground">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-foreground">Product</TableHead>
+                      <TableHead className="text-foreground">SKU</TableHead>
+                      <TableHead className="text-foreground">Current Stock</TableHead>
+                      <TableHead className="text-foreground">Reorder Point</TableHead>
+                      <TableHead className="text-foreground">Suggested Order</TableHead>
+                      <TableHead className="text-foreground">Supplier</TableHead>
+                      <TableHead className="text-foreground">Lead Time</TableHead>
+                      <TableHead className="text-foreground">Total Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inventoryData
+                      .filter((item) => reorderItems.includes(item.id))
+                      .map((item) => {
+                        const suggestedOrder = Math.max(10, item.reorderPoint * 2)
+                        const totalCost = item.costPrice * suggestedOrder
+                        return (
+                          <TableRow key={item.id} className="hover:bg-muted/30">
+                            <TableCell className="font-medium">{item.product.title}</TableCell>
+                            <TableCell>
+                              <code className="text-xs bg-muted px-2 py-1 rounded">
+                                {item.product.sku}
+                              </code>
+                            </TableCell>
+                            <TableCell>{item.currentStock}</TableCell>
+                            <TableCell>{item.reorderPoint}</TableCell>
+                            <TableCell>
+                              <span className="font-medium">{suggestedOrder} units</span>
+                            </TableCell>
+                            <TableCell>{item.supplier.name}</TableCell>
+                            <TableCell>{item.supplier.leadTime} days</TableCell>
+                            <TableCell className="font-medium">{formatPrice(totalCost)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowReorderDialog(false)}>
-                  Close
-                </Button>
-                <Button>Generate Purchase Order</Button>
+              <div className="flex justify-between items-center pt-4 border-t border-border">
+                <div className="text-sm text-muted-foreground">
+                  {inventoryData.filter((item) => reorderItems.includes(item.id)).length} items need reordering
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowReorderDialog(false)}
+                    className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    onClick={exportReorderReport}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV Report
+                  </Button>
+                  <Button onClick={generatePurchaseOrder}>
+                    Generate Purchase Order
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogContent>
@@ -1316,41 +1532,44 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
         {/* Add Product Dialog */}
         <Dialog open={showAddProductDialog} onOpenChange={setShowAddProductDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
+              <DialogTitle className="text-foreground">Add New Product</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="product-title">Product Name</Label>
+                <Label htmlFor="product-title" className="text-foreground">Product Name</Label>
                 <Input
                   id="product-title"
                   value={newProduct.title}
                   onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
                   placeholder="Enter product name"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <div>
-                <Label htmlFor="product-sku">SKU</Label>
+                <Label htmlFor="product-sku" className="text-foreground">SKU</Label>
                 <Input
                   id="product-sku"
                   value={newProduct.sku}
                   onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
                   placeholder="Enter SKU"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <div>
-                <Label htmlFor="product-barcode">Barcode</Label>
+                <Label htmlFor="product-barcode" className="text-foreground">Barcode</Label>
                 <Input
                   id="product-barcode"
                   value={newProduct.barcode}
                   onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
                   placeholder="Enter barcode"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="product-price">Selling Price</Label>
+                  <Label htmlFor="product-price" className="text-foreground">Selling Price</Label>
                   <Input
                     id="product-price"
                     type="number"
@@ -1359,10 +1578,11 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       setNewProduct({ ...newProduct, price: Number(e.target.value) })
                     }
                     placeholder="0.00"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="product-cost">Cost Price</Label>
+                  <Label htmlFor="product-cost" className="text-foreground">Cost Price</Label>
                   <Input
                     id="product-cost"
                     type="number"
@@ -1371,12 +1591,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       setNewProduct({ ...newProduct, costPrice: Number(e.target.value) })
                     }
                     placeholder="0.00"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="product-stock">Initial Stock</Label>
+                  <Label htmlFor="product-stock" className="text-foreground">Initial Stock</Label>
                   <Input
                     id="product-stock"
                     type="number"
@@ -1385,10 +1606,11 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       setNewProduct({ ...newProduct, inStock: Number(e.target.value) })
                     }
                     placeholder="0"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="product-threshold">Low Stock Threshold</Label>
+                  <Label htmlFor="product-threshold" className="text-foreground">Low Stock Threshold</Label>
                   <Input
                     id="product-threshold"
                     type="number"
@@ -1397,14 +1619,22 @@ const InventoryManagementComponent: React.FC<Props> = ({
                       setNewProduct({ ...newProduct, lowStockThreshold: Number(e.target.value) })
                     }
                     placeholder="5"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAddProductDialog(false)}
+                  className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAddProduct}>
+                <Button 
+                  onClick={handleAddProduct}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Add Product
                 </Button>
@@ -1415,35 +1645,35 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
         {/* Stock History Dialog */}
         <Dialog open={showStockHistory} onOpenChange={setShowStockHistory}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle>Stock History - {selectedItemHistory?.product.title}</DialogTitle>
+              <DialogTitle className="text-foreground">Stock History - {selectedItemHistory?.product.title}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {selectedItemHistory?.stockMovements &&
               selectedItemHistory.stockMovements.length > 0 ? (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>From</TableHead>
-                      <TableHead>To</TableHead>
-                      <TableHead>Reason</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="text-foreground">Date</TableHead>
+                      <TableHead className="text-foreground">Type</TableHead>
+                      <TableHead className="text-foreground">Quantity</TableHead>
+                      <TableHead className="text-foreground">From</TableHead>
+                      <TableHead className="text-foreground">To</TableHead>
+                      <TableHead className="text-foreground">Reason</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {selectedItemHistory.stockMovements.map((movement, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{new Date(movement.timestamp).toLocaleDateString()}</TableCell>
+                      <TableRow key={index} className="hover:bg-muted/30 border-border">
+                        <TableCell className="text-foreground">{new Date(movement.timestamp).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{movement.type}</Badge>
+                          <Badge variant="outline" className="border-border text-foreground">{movement.type}</Badge>
                         </TableCell>
-                        <TableCell>{Math.abs(movement.quantity)}</TableCell>
-                        <TableCell>{movement.previousStock}</TableCell>
-                        <TableCell>{movement.newStock}</TableCell>
-                        <TableCell>{movement.reason}</TableCell>
+                        <TableCell className="text-foreground">{Math.abs(movement.quantity)}</TableCell>
+                        <TableCell className="text-foreground">{movement.previousStock}</TableCell>
+                        <TableCell className="text-foreground">{movement.newStock}</TableCell>
+                        <TableCell className="text-foreground">{movement.reason}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1456,59 +1686,68 @@ const InventoryManagementComponent: React.FC<Props> = ({
               )}
             </div>
             <DialogFooter>
-              <Button onClick={() => setShowStockHistory(false)}>Close</Button>
+              <Button 
+                onClick={() => setShowStockHistory(false)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Close
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Supplier Dialog */}
         <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle>{selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
+              <DialogTitle className="text-foreground">{selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="supplier-name">Supplier Name</Label>
+                <Label htmlFor="supplier-name" className="text-foreground">Supplier Name</Label>
                 <Input
                   id="supplier-name"
                   value={newSupplier.name}
                   onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
                   placeholder="Enter supplier name"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <div>
-                <Label htmlFor="supplier-contact">Contact Person</Label>
+                <Label htmlFor="supplier-contact" className="text-foreground">Contact Person</Label>
                 <Input
                   id="supplier-contact"
                   value={newSupplier.contact}
                   onChange={(e) => setNewSupplier({ ...newSupplier, contact: e.target.value })}
                   placeholder="Enter contact person"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="supplier-phone">Phone</Label>
+                  <Label htmlFor="supplier-phone" className="text-foreground">Phone</Label>
                   <Input
                     id="supplier-phone"
                     value={newSupplier.phone}
                     onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
                     placeholder="Enter phone number"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="supplier-email">Email</Label>
+                  <Label htmlFor="supplier-email" className="text-foreground">Email</Label>
                   <Input
                     id="supplier-email"
                     type="email"
                     value={newSupplier.email}
                     onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
                     placeholder="Enter email"
+                    className="border-input text-foreground bg-background"
                   />
                 </div>
               </div>
               <div>
-                <Label htmlFor="supplier-lead-time">Lead Time (days)</Label>
+                <Label htmlFor="supplier-lead-time" className="text-foreground">Lead Time (days)</Label>
                 <Input
                   id="supplier-lead-time"
                   type="number"
@@ -1517,13 +1756,21 @@ const InventoryManagementComponent: React.FC<Props> = ({
                     setNewSupplier({ ...newSupplier, leadTime: Number(e.target.value) })
                   }
                   placeholder="Enter lead time in days"
+                  className="border-input text-foreground bg-background"
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowSupplierDialog(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowSupplierDialog(false)}
+                  className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleAddSupplier}>
+                <Button 
+                  onClick={handleAddSupplier}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {selectedSupplier ? 'Update Supplier' : 'Add Supplier'}
                 </Button>
