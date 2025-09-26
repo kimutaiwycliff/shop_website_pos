@@ -182,7 +182,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
       const params = new URLSearchParams()
       params.append('limit', '100')
       params.append('where[status][not_equals]', 'draft')
-      params.append('depth', '1')
+      params.append('depth', '2')
 
       if (query) {
         params.append('q', query)
@@ -221,7 +221,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 : product.inStock <= (product.lowStockThreshold || 5)
                   ? 'low_stock'
                   : 'in_stock',
-            supplier: { name: 'Default Supplier', leadTime: 7, contact: '' }, // Default values
+            supplier: product.supplier
+              ? {
+                  name: product.supplier.name || 'Unknown Supplier',
+                  leadTime: product.supplier.leadTime || 7,
+                  contact: product.supplier.contactPerson || '',
+                }
+              : { name: 'Default Supplier', leadTime: 7, contact: '' },
             costPrice: product.costPrice || product.price * 0.6, // Estimate cost price
             totalValue: product.inStock * (product.costPrice || product.price * 0.6),
           })) || []
@@ -322,7 +328,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
       params.append('where[barcode][equals]', barcode)
       params.append('where[status][not_equals]', 'draft')
       params.append('limit', '1')
-      params.append('depth', '1')
+      params.append('depth', '2')
 
       const response = await fetch(`/api/products?${params.toString()}`)
 
@@ -351,7 +357,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
       if (result.collection === 'products') {
         setIsSearching(true)
         try {
-          const response = await fetch(`/api/products/${result.id}?depth=1`)
+          const response = await fetch(`/api/products/${result.id}?depth=2`)
 
           if (response.ok) {
             const productData = await response.json()
@@ -479,8 +485,8 @@ const InventoryManagementComponent: React.FC<Props> = ({
     switch (status) {
       case 'in_stock':
         return (
-          <Badge 
-            variant="default" 
+          <Badge
+            variant="default"
             className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
           >
             In Stock
@@ -515,10 +521,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
         )
       default:
         return (
-          <Badge 
-            variant="outline" 
-            className="border-border text-foreground"
-          >
+          <Badge variant="outline" className="border-border text-foreground">
             Unknown
           </Badge>
         )
@@ -650,10 +653,20 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
   const exportReorderReport = () => {
     const itemsToReorder = inventoryData.filter((item) => reorderItems.includes(item.id))
-    
+
     // Create CSV content
-    const headers = ['Product Name', 'SKU', 'Current Stock', 'Reorder Point', 'Suggested Order Quantity', 'Supplier', 'Lead Time (Days)', 'Cost Price', 'Total Cost']
-    const rows = itemsToReorder.map(item => [
+    const headers = [
+      'Product Name',
+      'SKU',
+      'Current Stock',
+      'Reorder Point',
+      'Suggested Order Quantity',
+      'Supplier',
+      'Lead Time (Days)',
+      'Cost Price',
+      'Total Cost',
+    ]
+    const rows = itemsToReorder.map((item) => [
       item.product.title,
       item.product.sku,
       item.currentStock.toString(),
@@ -662,14 +675,11 @@ const InventoryManagementComponent: React.FC<Props> = ({
       item.supplier.name,
       item.supplier.leadTime.toString(),
       formatPrice(item.costPrice),
-      formatPrice(item.costPrice * Math.max(10, item.reorderPoint * 2))
+      formatPrice(item.costPrice * Math.max(10, item.reorderPoint * 2)),
     ])
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
-    
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
+
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -684,8 +694,21 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
   const exportInventory = () => {
     // Create CSV content
-    const headers = ['Product Name', 'SKU', 'Barcode', 'Current Stock', 'Min Stock Level', 'Max Stock Level', 'Reorder Point', 'Status', 'Location', 'Supplier', 'Cost Price', 'Total Value']
-    const rows = inventoryData.map(item => [
+    const headers = [
+      'Product Name',
+      'SKU',
+      'Barcode',
+      'Current Stock',
+      'Min Stock Level',
+      'Max Stock Level',
+      'Reorder Point',
+      'Status',
+      'Location',
+      'Supplier',
+      'Cost Price',
+      'Total Value',
+    ]
+    const rows = inventoryData.map((item) => [
       item.product.title,
       item.product.sku,
       item.product.barcode || '',
@@ -697,14 +720,11 @@ const InventoryManagementComponent: React.FC<Props> = ({
       `${item.location.warehouse} - ${item.location.aisle}-${item.location.shelf}`,
       item.supplier.name,
       formatPrice(item.costPrice),
-      formatPrice(item.totalValue)
+      formatPrice(item.totalValue),
     ])
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
-    
+
+    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
+
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -719,14 +739,16 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
   const generatePurchaseOrder = () => {
     const itemsToOrder = inventoryData.filter((item) => reorderItems.includes(item.id))
-    
+
     // In a real implementation, this would generate a proper purchase order
     // For now, we'll just show an alert with the items that would be ordered
-    const orderDetails = itemsToOrder.map(item => {
-      const suggestedOrder = Math.max(10, item.reorderPoint * 2)
-      return `${item.product.title} - ${suggestedOrder} units from ${item.supplier.name}`
-    }).join('\n')
-    
+    const orderDetails = itemsToOrder
+      .map((item) => {
+        const suggestedOrder = Math.max(10, item.reorderPoint * 2)
+        return `${item.product.title} - ${suggestedOrder} units from ${item.supplier.name}`
+      })
+      .join('\n')
+
     alert(`Purchase Order Generated!
 
 Items to order:
@@ -884,7 +906,7 @@ This would typically be sent to the supplier via email or integrated with a proc
               <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-4" />
               <h3 className="text-lg font-medium mb-2 text-foreground">Error Loading Inventory</h3>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button 
+              <Button
                 onClick={() => window.location.reload()}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
@@ -912,27 +934,27 @@ This would typically be sent to the supplier via email or integrated with a proc
           </div>
 
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowAddProductDialog(true)}
               className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={generateReorderReport}
               className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Reorder Report
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={exportInventory}
               className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
             >
@@ -959,7 +981,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                     className="flex items-center justify-between p-3 bg-white dark:bg-card rounded border border-border"
                   >
                     <div>
-                      <div className="font-medium text-sm text-foreground">{item.product.title}</div>
+                      <div className="font-medium text-sm text-foreground">
+                        {item.product.title}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {item.currentStock} units (min: {item.minStockLevel})
                       </div>
@@ -970,16 +994,16 @@ This would typically be sent to the supplier via email or integrated with a proc
               </div>
               <div className="flex justify-center gap-2 mt-3">
                 {stockAlerts.length > 6 && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                   >
                     View All {stockAlerts.length} Alerts
                   </Button>
                 )}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={generateReorderReport}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
@@ -1076,8 +1100,8 @@ This would typically be sent to the supplier via email or integrated with a proc
                 <div className="flex gap-2">
                   <Dialog open={showBarcodeScanner} onOpenChange={setShowBarcodeScanner}>
                     <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                       >
@@ -1139,9 +1163,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                   </SelectContent>
                 </Select>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => fetchProducts()}
                   className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
@@ -1157,24 +1181,24 @@ This would typically be sent to the supplier via email or integrated with a proc
                     {selectedItems.length} item(s) selected
                   </span>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={handleBulkAdjustment}
                       className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                     >
                       Bulk Adjust
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                     >
                       Bulk Transfer
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => setSelectedItems([])}
                       className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                     >
@@ -1220,10 +1244,7 @@ This would typically be sent to the supplier via email or integrated with a proc
               </TableHeader>
               <TableBody>
                 {filteredAndSortedData.map((item) => (
-                  <TableRow 
-                    key={item.id} 
-                    className="hover:bg-muted/30 border-border"
-                  >
+                  <TableRow key={item.id} className="hover:bg-muted/30 border-border">
                     {enableBulkActions && (
                       <TableCell>
                         <Checkbox
@@ -1296,7 +1317,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium text-foreground">{formatPrice(item.totalValue)}</div>
+                        <div className="font-medium text-foreground">
+                          {formatPrice(item.totalValue)}
+                        </div>
                         <div className="text-muted-foreground">@ {formatPrice(item.costPrice)}</div>
                       </div>
                     </TableCell>
@@ -1333,7 +1356,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                             <div className="space-y-4">
                               <div className="flex items-center gap-4">
                                 <div>
-                                  <Label className="text-foreground">Current Stock: {item.currentStock}</Label>
+                                  <Label className="text-foreground">
+                                    Current Stock: {item.currentStock}
+                                  </Label>
                                 </div>
                                 {item.product.barcode && (
                                   <div>
@@ -1344,7 +1369,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                                 )}
                               </div>
                               <div>
-                                <Label htmlFor="adjustment" className="text-foreground">Adjustment</Label>
+                                <Label htmlFor="adjustment" className="text-foreground">
+                                  Adjustment
+                                </Label>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Button
                                     size="sm"
@@ -1375,7 +1402,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                                 </div>
                               </div>
                               <div>
-                                <Label htmlFor="reason" className="text-foreground">Reason</Label>
+                                <Label htmlFor="reason" className="text-foreground">
+                                  Reason
+                                </Label>
                                 <Select
                                   value={adjustmentReason}
                                   onValueChange={setAdjustmentReason}
@@ -1423,8 +1452,8 @@ This would typically be sent to the supplier via email or integrated with a proc
                         )}
 
                         {enableStockTransfers && (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                           >
@@ -1504,26 +1533,25 @@ This would typically be sent to the supplier via email or integrated with a proc
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-border">
                 <div className="text-sm text-muted-foreground">
-                  {inventoryData.filter((item) => reorderItems.includes(item.id)).length} items need reordering
+                  {inventoryData.filter((item) => reorderItems.includes(item.id)).length} items need
+                  reordering
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setShowReorderDialog(false)}
                     className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                   >
                     Close
                   </Button>
-                  <Button 
+                  <Button
                     onClick={exportReorderReport}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Export CSV Report
                   </Button>
-                  <Button onClick={generatePurchaseOrder}>
-                    Generate Purchase Order
-                  </Button>
+                  <Button onClick={generatePurchaseOrder}>Generate Purchase Order</Button>
                 </div>
               </div>
             </div>
@@ -1538,7 +1566,9 @@ This would typically be sent to the supplier via email or integrated with a proc
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="product-title" className="text-foreground">Product Name</Label>
+                <Label htmlFor="product-title" className="text-foreground">
+                  Product Name
+                </Label>
                 <Input
                   id="product-title"
                   value={newProduct.title}
@@ -1548,7 +1578,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                 />
               </div>
               <div>
-                <Label htmlFor="product-sku" className="text-foreground">SKU</Label>
+                <Label htmlFor="product-sku" className="text-foreground">
+                  SKU
+                </Label>
                 <Input
                   id="product-sku"
                   value={newProduct.sku}
@@ -1558,7 +1590,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                 />
               </div>
               <div>
-                <Label htmlFor="product-barcode" className="text-foreground">Barcode</Label>
+                <Label htmlFor="product-barcode" className="text-foreground">
+                  Barcode
+                </Label>
                 <Input
                   id="product-barcode"
                   value={newProduct.barcode}
@@ -1569,7 +1603,9 @@ This would typically be sent to the supplier via email or integrated with a proc
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="product-price" className="text-foreground">Selling Price</Label>
+                  <Label htmlFor="product-price" className="text-foreground">
+                    Selling Price
+                  </Label>
                   <Input
                     id="product-price"
                     type="number"
@@ -1582,7 +1618,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                   />
                 </div>
                 <div>
-                  <Label htmlFor="product-cost" className="text-foreground">Cost Price</Label>
+                  <Label htmlFor="product-cost" className="text-foreground">
+                    Cost Price
+                  </Label>
                   <Input
                     id="product-cost"
                     type="number"
@@ -1597,7 +1635,9 @@ This would typically be sent to the supplier via email or integrated with a proc
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="product-stock" className="text-foreground">Initial Stock</Label>
+                  <Label htmlFor="product-stock" className="text-foreground">
+                    Initial Stock
+                  </Label>
                   <Input
                     id="product-stock"
                     type="number"
@@ -1610,7 +1650,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                   />
                 </div>
                 <div>
-                  <Label htmlFor="product-threshold" className="text-foreground">Low Stock Threshold</Label>
+                  <Label htmlFor="product-threshold" className="text-foreground">
+                    Low Stock Threshold
+                  </Label>
                   <Input
                     id="product-threshold"
                     type="number"
@@ -1624,14 +1666,14 @@ This would typically be sent to the supplier via email or integrated with a proc
                 </div>
               </div>
               <DialogFooter>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowAddProductDialog(false)}
                   className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleAddProduct}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
@@ -1647,7 +1689,9 @@ This would typically be sent to the supplier via email or integrated with a proc
         <Dialog open={showStockHistory} onOpenChange={setShowStockHistory}>
           <DialogContent className="max-w-2xl bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-foreground">Stock History - {selectedItemHistory?.product.title}</DialogTitle>
+              <DialogTitle className="text-foreground">
+                Stock History - {selectedItemHistory?.product.title}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {selectedItemHistory?.stockMovements &&
@@ -1666,11 +1710,17 @@ This would typically be sent to the supplier via email or integrated with a proc
                   <TableBody>
                     {selectedItemHistory.stockMovements.map((movement, index) => (
                       <TableRow key={index} className="hover:bg-muted/30 border-border">
-                        <TableCell className="text-foreground">{new Date(movement.timestamp).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="border-border text-foreground">{movement.type}</Badge>
+                        <TableCell className="text-foreground">
+                          {new Date(movement.timestamp).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-foreground">{Math.abs(movement.quantity)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-border text-foreground">
+                            {movement.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-foreground">
+                          {Math.abs(movement.quantity)}
+                        </TableCell>
                         <TableCell className="text-foreground">{movement.previousStock}</TableCell>
                         <TableCell className="text-foreground">{movement.newStock}</TableCell>
                         <TableCell className="text-foreground">{movement.reason}</TableCell>
@@ -1686,7 +1736,7 @@ This would typically be sent to the supplier via email or integrated with a proc
               )}
             </div>
             <DialogFooter>
-              <Button 
+              <Button
                 onClick={() => setShowStockHistory(false)}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
@@ -1700,11 +1750,15 @@ This would typically be sent to the supplier via email or integrated with a proc
         <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
           <DialogContent className="max-w-md bg-background text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-foreground">{selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
+              <DialogTitle className="text-foreground">
+                {selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="supplier-name" className="text-foreground">Supplier Name</Label>
+                <Label htmlFor="supplier-name" className="text-foreground">
+                  Supplier Name
+                </Label>
                 <Input
                   id="supplier-name"
                   value={newSupplier.name}
@@ -1714,7 +1768,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                 />
               </div>
               <div>
-                <Label htmlFor="supplier-contact" className="text-foreground">Contact Person</Label>
+                <Label htmlFor="supplier-contact" className="text-foreground">
+                  Contact Person
+                </Label>
                 <Input
                   id="supplier-contact"
                   value={newSupplier.contact}
@@ -1725,7 +1781,9 @@ This would typically be sent to the supplier via email or integrated with a proc
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="supplier-phone" className="text-foreground">Phone</Label>
+                  <Label htmlFor="supplier-phone" className="text-foreground">
+                    Phone
+                  </Label>
                   <Input
                     id="supplier-phone"
                     value={newSupplier.phone}
@@ -1735,7 +1793,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                   />
                 </div>
                 <div>
-                  <Label htmlFor="supplier-email" className="text-foreground">Email</Label>
+                  <Label htmlFor="supplier-email" className="text-foreground">
+                    Email
+                  </Label>
                   <Input
                     id="supplier-email"
                     type="email"
@@ -1747,7 +1807,9 @@ This would typically be sent to the supplier via email or integrated with a proc
                 </div>
               </div>
               <div>
-                <Label htmlFor="supplier-lead-time" className="text-foreground">Lead Time (days)</Label>
+                <Label htmlFor="supplier-lead-time" className="text-foreground">
+                  Lead Time (days)
+                </Label>
                 <Input
                   id="supplier-lead-time"
                   type="number"
@@ -1760,14 +1822,14 @@ This would typically be sent to the supplier via email or integrated with a proc
                 />
               </div>
               <DialogFooter>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowSupplierDialog(false)}
                   className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleAddSupplier}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
