@@ -79,6 +79,7 @@ export interface Config {
     inventory: Inventory;
     transactions: Transaction;
     cart: Cart;
+    suppliers: Supplier;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -107,6 +108,7 @@ export interface Config {
     inventory: InventorySelect<false> | InventorySelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
     cart: CartSelect<false> | CartSelect<true>;
+    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -920,6 +922,10 @@ export interface Product {
    */
   brand?: (number | null) | Brand;
   /**
+   * Select the primary supplier for this product
+   */
+  supplier?: (number | null) | Supplier;
+  /**
    * Detailed description of the product. Include key features, benefits, and specifications.
    */
   description?: {
@@ -1153,6 +1159,71 @@ export interface Brand {
     image?: (number | null) | Media;
     description?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Manage product suppliers and vendor information
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers".
+ */
+export interface Supplier {
+  id: number;
+  /**
+   * The official name of the supplier company
+   */
+  name: string;
+  /**
+   * Brief description of the supplier and what they provide
+   */
+  description?: string | null;
+  /**
+   * Name of the main contact person at this supplier
+   */
+  contactPerson?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  /**
+   * Supplier website URL
+   */
+  website?: string | null;
+  address?: {
+    street?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipCode?: string | null;
+    country?: string | null;
+  };
+  /**
+   * Average number of days from order to delivery
+   */
+  leadTime?: number | null;
+  /**
+   * e.g., Net 30, 50% upfront, etc.
+   */
+  paymentTerms?: string | null;
+  currency?: ('KES' | 'USD' | 'EUR') | null;
+  /**
+   * Minimum purchase amount required
+   */
+  minimumOrderValue?: number | null;
+  /**
+   * Only active suppliers will be available for product assignment
+   */
+  active?: boolean | null;
+  /**
+   * Product categories this supplier provides
+   */
+  productCategories?: (number | Category)[] | null;
+  /**
+   * Brands this supplier provides
+   */
+  brands?: (number | Brand)[] | null;
+  /**
+   * Additional notes for internal reference
+   */
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1669,16 +1740,10 @@ export interface Inventory {
         id?: string | null;
       }[]
     | null;
-  supplier?: {
-    name?: string | null;
-    contact?: string | null;
-    phone?: string | null;
-    email?: string | null;
-    /**
-     * Time it takes to receive new stock
-     */
-    leadTime?: number | null;
-  };
+  /**
+   * Select the supplier for this inventory item
+   */
+  supplier?: (number | null) | Supplier;
   costInfo?: {
     lastPurchasePrice?: number | null;
     averageCost?: number | null;
@@ -2029,6 +2094,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'cart';
         value: number | Cart;
+      } | null)
+    | ({
+        relationTo: 'suppliers';
+        value: number | Supplier;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -2692,6 +2761,7 @@ export interface ProductsSelect<T extends boolean = true> {
   slugLock?: T;
   categories?: T;
   brand?: T;
+  supplier?: T;
   description?: T;
   images?:
     | T
@@ -2939,15 +3009,7 @@ export interface InventorySelect<T extends boolean = true> {
         timestamp?: T;
         id?: T;
       };
-  supplier?:
-    | T
-    | {
-        name?: T;
-        contact?: T;
-        phone?: T;
-        email?: T;
-        leadTime?: T;
-      };
+  supplier?: T;
   costInfo?:
     | T
     | {
@@ -3019,6 +3081,37 @@ export interface CartSelect<T extends boolean = true> {
         estimatedDays?: T;
       };
   expiresAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers_select".
+ */
+export interface SuppliersSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  contactPerson?: T;
+  email?: T;
+  phone?: T;
+  website?: T;
+  address?:
+    | T
+    | {
+        street?: T;
+        city?: T;
+        state?: T;
+        zipCode?: T;
+        country?: T;
+      };
+  leadTime?: T;
+  paymentTerms?: T;
+  currency?: T;
+  minimumOrderValue?: T;
+  active?: T;
+  productCategories?: T;
+  brands?: T;
   notes?: T;
   updatedAt?: T;
   createdAt?: T;

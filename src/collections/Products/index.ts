@@ -89,6 +89,15 @@ export const Products: CollectionConfig = {
               },
             },
             {
+              name: 'supplier',
+              type: 'relationship',
+              relationTo: 'suppliers',
+              admin: {
+                position: 'sidebar',
+                description: 'Select the primary supplier for this product',
+              },
+            },
+            {
               name: 'description',
               type: 'richText',
               admin: {

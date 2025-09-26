@@ -24,6 +24,7 @@ import { Customers } from './collections/Customers'
 import { Inventory } from './collections/Inventory'
 import { Transactions } from './collections/Transactions'
 import { Cart } from './collections/Cart'
+import { Suppliers } from './collections/Suppliers'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -85,6 +86,7 @@ export default buildConfig({
     Inventory,
     Transactions,
     Cart,
+    Suppliers,
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],

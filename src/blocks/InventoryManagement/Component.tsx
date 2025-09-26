@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { InventoryManagementBlock as InventoryManagementBlockType } from '@/payload-types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog'
 import {
   Table,
@@ -44,78 +45,74 @@ import {
   Truck,
   ScanLine,
   Camera,
+  Save,
+  X,
+  Filter,
+  Eye,
 } from 'lucide-react'
 import Image from 'next/image'
 import BarcodeScanner from '../../components/BarcodeScanner'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import { SearchResult } from '@/lib/advancedSearch'
+import { Textarea } from '@/components/ui/textarea'
 
-// Mock inventory data
-const mockInventoryData = [
-  {
-    id: '1',
-    product: {
-      id: 'prod-1',
-      title: 'Premium Cotton T-Shirt',
-      sku: 'TSH-001',
-      barcode: '123456789012',
-      images: [{ image: { url: '/api/media/tshirt.jpg', alt: 'T-Shirt' } }],
-      price: 2500,
-    },
-    currentStock: 15,
-    minStockLevel: 10,
-    maxStockLevel: 100,
-    reorderPoint: 15,
-    location: { warehouse: 'Main Store', aisle: 'A1', shelf: '2' },
-    lastUpdated: '2024-01-15T10:30:00Z',
-    status: 'in_stock',
-    supplier: { name: 'Cotton Co.', leadTime: 7 },
-    costPrice: 1200,
-    totalValue: 18000,
-  },
-  {
-    id: '2',
-    product: {
-      id: 'prod-2',
-      title: 'Denim Jeans',
-      sku: 'JNS-001',
-      barcode: '123456789013',
-      images: [{ image: { url: '/api/media/jeans.jpg', alt: 'Jeans' } }],
-      price: 4500,
-    },
-    currentStock: 3,
-    minStockLevel: 5,
-    maxStockLevel: 50,
-    reorderPoint: 8,
-    location: { warehouse: 'Main Store', aisle: 'B2', shelf: '1' },
-    lastUpdated: '2024-01-14T15:45:00Z',
-    status: 'low_stock',
-    supplier: { name: 'Denim Works', leadTime: 14 },
-    costPrice: 2200,
-    totalValue: 6600,
-  },
-  {
-    id: '3',
-    product: {
-      id: 'prod-3',
-      title: 'Summer Dress',
-      sku: 'DRS-001',
-      barcode: '123456789014',
-      images: [{ image: { url: '/api/media/dress.jpg', alt: 'Dress' } }],
-      price: 3500,
-    },
-    currentStock: 0,
-    minStockLevel: 8,
-    maxStockLevel: 40,
-    reorderPoint: 12,
-    location: { warehouse: 'Main Store', aisle: 'C1', shelf: '3' },
-    lastUpdated: '2024-01-13T09:20:00Z',
-    status: 'out_of_stock',
-    supplier: { name: 'Fashion House', leadTime: 10 },
-    costPrice: 1800,
-    totalValue: 0,
-  },
-]
+// Define types for our inventory data
+interface InventoryItem {
+  id: string
+  product: {
+    id: string
+    title: string
+    sku: string
+    barcode?: string
+    images?: Array<{
+      image: {
+        url: string
+        alt: string
+      }
+    }>
+    price: number
+    inStock: number
+    lowStockThreshold?: number
+    costPrice?: number
+  }
+  currentStock: number
+  minStockLevel: number
+  maxStockLevel: number
+  reorderPoint: number
+  location: {
+    warehouse: string
+    aisle: string
+    shelf: string
+  }
+  lastUpdated: string
+  status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'discontinued'
+  supplier: {
+    name: string
+    leadTime: number
+    contact?: string
+  }
+  costPrice: number
+  totalValue: number
+  stockMovements?: Array<{
+    type: 'sale' | 'restock' | 'return' | 'damage' | 'loss' | 'adjustment'
+    quantity: number
+    previousStock: number
+    newStock: number
+    reason: string
+    reference?: string
+    user?: string
+    timestamp: string
+  }>
+}
+
+interface Supplier {
+  id: string
+  name: string
+  contact?: string
+  phone?: string
+  email?: string
+  leadTime?: number
+}
 
 type Props = InventoryManagementBlockType
 
@@ -127,7 +124,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
   // Default values for properties not in the block type
   const enableStockTransfers = true
   const enableStockHistory = true
-  const [inventoryData, setInventoryData] = useState(mockInventoryData)
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
@@ -143,6 +143,207 @@ const InventoryManagementComponent: React.FC<Props> = ({
   const [scannedProduct, setScannedProduct] = useState<any>(null)
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [products, setProducts] = useState<any[]>([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false)
+  const [showStockHistory, setShowStockHistory] = useState(false)
+  const [selectedItemHistory, setSelectedItemHistory] = useState<InventoryItem | null>(null)
+  const [showSupplierDialog, setShowSupplierDialog] = useState(false)
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // State for new product form
+  const [newProduct, setNewProduct] = useState({
+    title: '',
+    sku: '',
+    barcode: '',
+    price: 0,
+    costPrice: 0,
+    inStock: 0,
+    lowStockThreshold: 5,
+  })
+
+  // State for supplier form
+  const [newSupplier, setNewSupplier] = useState({
+    name: '',
+    contact: '',
+    phone: '',
+    email: '',
+    leadTime: 7,
+  })
+
+  // Fetch products from the database
+  const fetchProducts = useCallback(async (query?: string) => {
+    setIsLoadingProducts(true)
+    setLoading(true)
+
+    try {
+      // Build query parameters properly
+      const params = new URLSearchParams()
+      params.append('limit', '100')
+      params.append('where[status][not_equals]', 'draft')
+      params.append('depth', '1')
+
+      if (query) {
+        params.append('q', query)
+      }
+
+      const response = await fetch(`/api/products?${params.toString()}`)
+
+      if (response.ok) {
+        const result = await response.json()
+        setProducts(result.docs || [])
+
+        // Transform products to inventory items
+        const inventoryItems: InventoryItem[] =
+          result.docs?.map((product: any) => ({
+            id: product.id,
+            product: {
+              id: product.id,
+              title: product.title,
+              sku: product.sku,
+              barcode: product.barcode,
+              images: product.images,
+              price: product.price,
+              inStock: product.inStock,
+              lowStockThreshold: product.lowStockThreshold,
+              costPrice: product.costPrice,
+            },
+            currentStock: product.inStock,
+            minStockLevel: product.lowStockThreshold || 5,
+            maxStockLevel: 100, // Default value
+            reorderPoint: product.lowStockThreshold || 5,
+            location: { warehouse: 'Main Store', aisle: 'A1', shelf: '1' }, // Default values
+            lastUpdated: product.updatedAt || new Date().toISOString(),
+            status:
+              product.inStock === 0
+                ? 'out_of_stock'
+                : product.inStock <= (product.lowStockThreshold || 5)
+                  ? 'low_stock'
+                  : 'in_stock',
+            supplier: { name: 'Default Supplier', leadTime: 7, contact: '' }, // Default values
+            costPrice: product.costPrice || product.price * 0.6, // Estimate cost price
+            totalValue: product.inStock * (product.costPrice || product.price * 0.6),
+          })) || []
+
+        setInventoryData(inventoryItems)
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+      setError('Failed to load inventory data. Please try again later.')
+    } finally {
+      setIsLoadingProducts(false)
+      setLoading(false)
+    }
+  }, [])
+
+  // Fetch inventory data from the inventory collection
+  const fetchInventoryData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/inventory?depth=2&limit=100')
+
+      if (response.ok) {
+        const result = await response.json()
+        // Merge inventory data with product data
+        setInventoryData((prevData) =>
+          prevData.map((item) => {
+            const inventoryRecord = result.docs?.find((inv: any) => inv.product === item.product.id)
+            if (inventoryRecord) {
+              return {
+                ...item,
+                minStockLevel: inventoryRecord.minStockLevel,
+                maxStockLevel: inventoryRecord.maxStockLevel || 100,
+                reorderPoint: inventoryRecord.reorderPoint || inventoryRecord.minStockLevel,
+                location: inventoryRecord.location || item.location,
+                supplier: inventoryRecord.supplier
+                  ? {
+                      name: inventoryRecord.supplier.name || 'Unknown Supplier',
+                      leadTime: inventoryRecord.supplier.leadTime || 7,
+                      contact: inventoryRecord.supplier.contactPerson || '',
+                    }
+                  : { name: 'Default Supplier', leadTime: 7, contact: '' },
+                stockMovements: inventoryRecord.stockMovements || [],
+              }
+            }
+            return item
+          }),
+        )
+      }
+    } catch (error) {
+      console.error('Failed to fetch inventory data:', error)
+    }
+  }, [])
+
+  // Fetch suppliers
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/suppliers?limit=100')
+
+      if (response.ok) {
+        const result = await response.json()
+        const supplierData: Supplier[] =
+          result.docs?.map((sup: any) => ({
+            id: sup.id,
+            name: sup.name,
+            contact: sup.contactPerson,
+            phone: sup.phone,
+            email: sup.email,
+            leadTime: sup.leadTime || 7,
+          })) || []
+
+        setSuppliers(supplierData)
+      } else {
+        console.error('Failed to fetch suppliers')
+        // Fallback to mock data
+        setSuppliers([
+          { id: '1', name: 'Default Supplier', leadTime: 7 },
+          { id: '2', name: 'Premium Supplier', leadTime: 3, contact: 'John Doe' },
+          { id: '3', name: 'Budget Supplier', leadTime: 14, contact: 'Jane Smith' },
+        ])
+      }
+    } catch (error) {
+      console.error('Failed to fetch suppliers:', error)
+      // Fallback to mock data
+      setSuppliers([
+        { id: '1', name: 'Default Supplier', leadTime: 7 },
+        { id: '2', name: 'Premium Supplier', leadTime: 3, contact: 'John Doe' },
+        { id: '3', name: 'Budget Supplier', leadTime: 14, contact: 'Jane Smith' },
+      ])
+    }
+  }, [])
+
+  // Find product by barcode
+  const findProductByBarcode = useCallback(async (barcode: string) => {
+    try {
+      const params = new URLSearchParams()
+      params.append('where[barcode][equals]', barcode)
+      params.append('where[status][not_equals]', 'draft')
+      params.append('limit', '1')
+      params.append('depth', '1')
+
+      const response = await fetch(`/api/products?${params.toString()}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.docs?.[0] || null
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        console.error(
+          'Failed to find product by barcode:',
+          response.status,
+          response.statusText,
+          errorText,
+        )
+        return null
+      }
+    } catch (error) {
+      console.error('Error finding product by barcode:', error)
+      return null
+    }
+  }, [])
 
   // Handle advanced search result selection
   const handleSearchResult = useCallback(
@@ -150,20 +351,31 @@ const InventoryManagementComponent: React.FC<Props> = ({
       if (result.collection === 'products') {
         setIsSearching(true)
         try {
-          // Find the inventory item for this product
-          const inventoryItem = inventoryData.find((item) => item.product.id === result.id)
-          if (inventoryItem) {
-            // Scroll to and highlight the item in the table
-            setSelectedItems([inventoryItem.id])
-            // You could also open the adjustment dialog automatically
-            setSelectedItemForAdjustment(inventoryItem.id)
-            setShowStockAdjustment(true)
+          const response = await fetch(`/api/products/${result.id}?depth=1`)
+
+          if (response.ok) {
+            const productData = await response.json()
+            const inventoryItem = inventoryData.find((item) => item.product.id === productData.id)
+            if (inventoryItem) {
+              setSelectedItems([inventoryItem.id])
+              setSelectedItemForAdjustment(inventoryItem.id)
+              setShowStockAdjustment(true)
+            } else {
+              alert(`Product "${productData.title}" not found in inventory`)
+            }
           } else {
-            // Product not found in inventory
-            alert(`Product "${result.title}" not found in inventory`)
+            const errorText = await response.text().catch(() => 'Unknown error')
+            console.error(
+              'Failed to fetch product:',
+              response.status,
+              response.statusText,
+              errorText,
+            )
+            alert('Failed to load product details. Please try again.')
           }
         } catch (error) {
-          console.error('Error finding inventory item:', error)
+          console.error('Error fetching product:', error)
+          alert('Network error while loading product. Please check your connection and try again.')
         } finally {
           setIsSearching(false)
         }
@@ -177,6 +389,35 @@ const InventoryManagementComponent: React.FC<Props> = ({
     setSearchResults([])
     setSearchQuery('')
   }, [])
+
+  // Load data on component mount
+  useEffect(() => {
+    console.log('Inventory Management component mounted, fetching products...')
+    fetchProducts()
+    fetchSuppliers()
+  }, [fetchProducts, fetchSuppliers])
+
+  // Fetch inventory data after products are loaded
+  useEffect(() => {
+    if (products.length > 0) {
+      fetchInventoryData()
+    }
+  }, [products, fetchInventoryData])
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length >= 2) {
+        console.log('Searching products with query:', searchQuery)
+        fetchProducts(searchQuery)
+      } else if (searchQuery.length === 0) {
+        console.log('Clearing search, fetching all products')
+        fetchProducts()
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, fetchProducts])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -197,7 +438,8 @@ const InventoryManagementComponent: React.FC<Props> = ({
         statusFilter === 'all' ||
         (statusFilter === 'in_stock' && item.status === 'in_stock') ||
         (statusFilter === 'low_stock' && item.status === 'low_stock') ||
-        (statusFilter === 'out_of_stock' && item.status === 'out_of_stock')
+        (statusFilter === 'out_of_stock' && item.status === 'out_of_stock') ||
+        (statusFilter === 'restock' && item.currentStock <= item.reorderPoint)
 
       return matchesSearch && matchesStatus
     })
@@ -227,6 +469,9 @@ const InventoryManagementComponent: React.FC<Props> = ({
     (item) => item.status === 'low_stock' || item.status === 'out_of_stock',
   )
 
+  // Items that need restocking (at or below reorder point)
+  const restockItems = inventoryData.filter((item) => item.currentStock <= item.reorderPoint)
+
   const totalValue = inventoryData.reduce((sum, item) => sum + item.totalValue, 0)
   const totalItems = inventoryData.reduce((sum, item) => sum + item.currentStock, 0)
 
@@ -252,40 +497,135 @@ const InventoryManagementComponent: React.FC<Props> = ({
             Out of Stock
           </Badge>
         )
+      case 'discontinued':
+        return (
+          <Badge
+            variant="outline"
+            className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+          >
+            Discontinued
+          </Badge>
+        )
       default:
         return <Badge variant="outline">Unknown</Badge>
     }
   }
 
-  const handleStockAdjustment = (itemId: string, quantity: number, reason: string) => {
-    setInventoryData((prev) =>
-      prev.map((item) => {
-        if (item.id === itemId) {
-          const newStock = Math.max(0, item.currentStock + quantity)
-          const newStatus =
-            newStock === 0
-              ? 'out_of_stock'
-              : newStock <= item.minStockLevel
-                ? 'low_stock'
-                : 'in_stock'
+  // Update product stock in the database
+  const updateProductStock = useCallback(async (productId: string, newStock: number) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inStock: newStock,
+        }),
+      })
 
-          return {
-            ...item,
-            currentStock: newStock,
-            status: newStatus,
-            totalValue: newStock * item.costPrice,
-            lastUpdated: new Date().toISOString(),
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const updatedProduct = await response.json()
+      return updatedProduct
+    } catch (error) {
+      console.error('Error updating product stock:', error)
+      throw error
+    }
+  }, [])
+
+  // Add stock movement to inventory record
+  const addStockMovement = useCallback(
+    async (
+      inventoryId: string,
+      type: 'sale' | 'restock' | 'return' | 'damage' | 'loss' | 'adjustment',
+      quantity: number,
+      reason: string,
+      previousStock: number,
+      newStock: number,
+    ) => {
+      try {
+        // In a real implementation, you would add the stock movement to the inventory record
+        console.log('Adding stock movement:', {
+          inventoryId,
+          type,
+          quantity,
+          reason,
+          previousStock,
+          newStock,
+        })
+        // This would typically be a POST to /api/inventory/:id/stock-movements
+        return true
+      } catch (error) {
+        console.error('Error adding stock movement:', error)
+        return false
+      }
+    },
+    [],
+  )
+
+  const handleStockAdjustment = async (itemId: string, quantity: number, reason: string) => {
+    try {
+      setInventoryData((prev) =>
+        prev.map((item) => {
+          if (item.id === itemId) {
+            const newStock = Math.max(0, item.currentStock + quantity)
+            const newStatus =
+              newStock === 0
+                ? 'out_of_stock'
+                : newStock <= item.minStockLevel
+                  ? 'low_stock'
+                  : 'in_stock'
+
+            return {
+              ...item,
+              currentStock: newStock,
+              status: newStatus,
+              totalValue: newStock * item.costPrice,
+              lastUpdated: new Date().toISOString(),
+            }
           }
-        }
-        return item
-      }),
-    )
+          return item
+        }),
+      )
 
-    console.log('Stock adjustment:', { itemId, quantity, reason })
+      // Find the item to get product ID
+      const item = inventoryData.find((item) => item.id === itemId)
+      if (item) {
+        // Update product stock in database
+        await updateProductStock(item.product.id, item.currentStock + quantity)
+
+        // Add stock movement record
+        const inventoryRecord = inventoryData.find((i) => i.product.id === item.product.id)
+        if (inventoryRecord) {
+          await addStockMovement(
+            inventoryRecord.id,
+            quantity > 0 ? 'restock' : 'adjustment',
+            Math.abs(quantity),
+            reason,
+            item.currentStock,
+            item.currentStock + quantity,
+          )
+        }
+      }
+
+      console.log('Stock adjustment:', { itemId, quantity, reason })
+      setShowStockAdjustment(false)
+      setSelectedItemForAdjustment(null)
+      setAdjustmentQuantity(0)
+      setAdjustmentReason('')
+    } catch (error) {
+      console.error('Error adjusting stock:', error)
+      alert('Failed to adjust stock. Please try again.')
+    }
   }
 
   const handleBulkAdjustment = () => {
     console.log('Bulk adjustment for items:', selectedItems)
+    // Implementation for bulk adjustment
   }
 
   const generateReorderReport = () => {
@@ -296,26 +636,40 @@ const InventoryManagementComponent: React.FC<Props> = ({
 
   const exportInventory = () => {
     console.log('Exporting inventory data...')
+    // Implementation for exporting inventory data
   }
 
   // Barcode scanning functionality
   const handleBarcodeScan = useCallback(
-    (barcode: string) => {
+    async (barcode: string) => {
       console.log('Barcode scanned:', barcode)
 
-      // Find the product by barcode
-      const foundItem = inventoryData.find((item) => item.product.barcode === barcode)
+      // First check if product is already in the filtered list
+      let product = products.find((p: any) => p.barcode === barcode)
 
-      if (foundItem) {
-        setScannedProduct(foundItem)
-        setSelectedItemForAdjustment(foundItem.id)
-        setShowStockAdjustment(true)
-        setShowBarcodeScanner(false)
+      // If not found, search the database
+      if (!product) {
+        product = await findProductByBarcode(barcode)
+      }
+
+      if (product) {
+        // Find the inventory item for this product
+        const inventoryItem = inventoryData.find((item) => item.product.id === product.id)
+
+        if (inventoryItem) {
+          setScannedProduct(inventoryItem)
+          setSelectedItemForAdjustment(inventoryItem.id)
+          setShowStockAdjustment(true)
+          setShowBarcodeScanner(false)
+        } else {
+          alert(`Product "${product.title}" not found in inventory`)
+        }
       } else {
-        alert(`Product with barcode ${barcode} not found in inventory`)
+        // Show error - product not found
+        alert(`Product with barcode ${barcode} not found`)
       }
     },
-    [inventoryData],
+    [products, findProductByBarcode, inventoryData],
   )
 
   const handleBarcodeInput = (e: React.KeyboardEvent) => {
@@ -323,6 +677,122 @@ const InventoryManagementComponent: React.FC<Props> = ({
       handleBarcodeScan(barcodeInput)
       setBarcodeInput('')
     }
+  }
+
+  // Add a new product
+  const handleAddProduct = async () => {
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newProduct,
+          status: newProduct.inStock > 0 ? 'published' : 'out-of-stock',
+        }),
+      })
+
+      if (response.ok) {
+        const product = await response.json()
+        console.log('Product added:', product)
+        setShowAddProductDialog(false)
+        setNewProduct({
+          title: '',
+          sku: '',
+          barcode: '',
+          price: 0,
+          costPrice: 0,
+          inStock: 0,
+          lowStockThreshold: 5,
+        })
+        // Refresh the product list
+        fetchProducts()
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+    } catch (error) {
+      console.error('Error adding product:', error)
+      alert('Failed to add product. Please try again.')
+    }
+  }
+
+  // View stock history
+  const viewStockHistory = (item: InventoryItem) => {
+    setSelectedItemHistory(item)
+    setShowStockHistory(true)
+  }
+
+  // Add a new supplier
+  const handleAddSupplier = async () => {
+    try {
+      const response = await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newSupplier.name,
+          contactPerson: newSupplier.contact,
+          phone: newSupplier.phone,
+          email: newSupplier.email,
+          leadTime: newSupplier.leadTime,
+          active: true,
+        }),
+      })
+
+      if (response.ok) {
+        const supplier = await response.json()
+        console.log('Supplier added:', supplier)
+        setShowSupplierDialog(false)
+        setNewSupplier({
+          name: '',
+          contact: '',
+          phone: '',
+          email: '',
+          leadTime: 7,
+        })
+        // Refresh the supplier list
+        fetchSuppliers()
+      } else {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+    } catch (error) {
+      console.error('Error adding supplier:', error)
+      alert('Failed to add supplier. Please try again.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading inventory data...</span>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto text-red-500 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Error Loading Inventory</h3>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -340,6 +810,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setShowAddProductDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
             <Button variant="outline" size="sm" onClick={generateReorderReport}>
               <BarChart3 className="h-4 w-4 mr-2" />
               Reorder Report
@@ -381,6 +855,45 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 <div className="text-center mt-3">
                   <Button variant="outline" size="sm">
                     View All {stockAlerts.length} Alerts
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Restock Items */}
+        {restockItems.length > 0 && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <AlertTriangle className="h-5 w-5" />
+                Items Needing Restock ({restockItems.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {restockItems.slice(0, 6).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 bg-white rounded border"
+                  >
+                    <div>
+                      <div className="font-medium text-sm">{item.product.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.currentStock} units (reorder at: {item.reorderPoint})
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      Restock
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+              {restockItems.length > 6 && (
+                <div className="text-center mt-3">
+                  <Button variant="outline" size="sm" onClick={generateReorderReport}>
+                    View All {restockItems.length} Items
                   </Button>
                 </div>
               )}
@@ -460,6 +973,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                     <SelectItem value="in_stock">In Stock</SelectItem>
                     <SelectItem value="low_stock">Low Stock</SelectItem>
                     <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                    <SelectItem value="restock">Needs Restock</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -476,7 +990,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
                   </SelectContent>
                 </Select>
 
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => fetchProducts()}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
@@ -707,17 +1221,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
                                 </Select>
                               </div>
                               <Button
-                                onClick={() => {
+                                onClick={() =>
                                   handleStockAdjustment(
                                     item.id,
                                     adjustmentQuantity,
                                     adjustmentReason,
                                   )
-                                  setShowStockAdjustment(false)
-                                  setSelectedItemForAdjustment(null)
-                                  setAdjustmentQuantity(0)
-                                  setAdjustmentReason('')
-                                }}
+                                }
                                 disabled={!adjustmentReason}
                                 className="w-full"
                               >
@@ -728,7 +1238,11 @@ const InventoryManagementComponent: React.FC<Props> = ({
                         </Dialog>
 
                         {enableStockHistory && (
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => viewStockHistory(item)}
+                          >
                             <History className="h-3 w-3" />
                           </Button>
                         )}
@@ -794,10 +1308,226 @@ const InventoryManagementComponent: React.FC<Props> = ({
                 <Button variant="outline" onClick={() => setShowReorderDialog(false)}>
                   Close
                 </Button>
-                <Button onClick={() => console.log('Generate purchase orders')}>
-                  Generate Purchase Orders
-                </Button>
+                <Button>Generate Purchase Order</Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Product Dialog */}
+        <Dialog open={showAddProductDialog} onOpenChange={setShowAddProductDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Product</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="product-title">Product Name</Label>
+                <Input
+                  id="product-title"
+                  value={newProduct.title}
+                  onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
+                  placeholder="Enter product name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="product-sku">SKU</Label>
+                <Input
+                  id="product-sku"
+                  value={newProduct.sku}
+                  onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                  placeholder="Enter SKU"
+                />
+              </div>
+              <div>
+                <Label htmlFor="product-barcode">Barcode</Label>
+                <Input
+                  id="product-barcode"
+                  value={newProduct.barcode}
+                  onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+                  placeholder="Enter barcode"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="product-price">Selling Price</Label>
+                  <Input
+                    id="product-price"
+                    type="number"
+                    value={newProduct.price}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, price: Number(e.target.value) })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="product-cost">Cost Price</Label>
+                  <Input
+                    id="product-cost"
+                    type="number"
+                    value={newProduct.costPrice}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, costPrice: Number(e.target.value) })
+                    }
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="product-stock">Initial Stock</Label>
+                  <Input
+                    id="product-stock"
+                    type="number"
+                    value={newProduct.inStock}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, inStock: Number(e.target.value) })
+                    }
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="product-threshold">Low Stock Threshold</Label>
+                  <Input
+                    id="product-threshold"
+                    type="number"
+                    value={newProduct.lowStockThreshold}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, lowStockThreshold: Number(e.target.value) })
+                    }
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddProduct}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Stock History Dialog */}
+        <Dialog open={showStockHistory} onOpenChange={setShowStockHistory}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Stock History - {selectedItemHistory?.product.title}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedItemHistory?.stockMovements &&
+              selectedItemHistory.stockMovements.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Reason</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedItemHistory.stockMovements.map((movement, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{new Date(movement.timestamp).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{movement.type}</Badge>
+                        </TableCell>
+                        <TableCell>{Math.abs(movement.quantity)}</TableCell>
+                        <TableCell>{movement.previousStock}</TableCell>
+                        <TableCell>{movement.newStock}</TableCell>
+                        <TableCell>{movement.reason}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No stock movements recorded</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowStockHistory(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Supplier Dialog */}
+        <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{selectedSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="supplier-name">Supplier Name</Label>
+                <Input
+                  id="supplier-name"
+                  value={newSupplier.name}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                  placeholder="Enter supplier name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="supplier-contact">Contact Person</Label>
+                <Input
+                  id="supplier-contact"
+                  value={newSupplier.contact}
+                  onChange={(e) => setNewSupplier({ ...newSupplier, contact: e.target.value })}
+                  placeholder="Enter contact person"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="supplier-phone">Phone</Label>
+                  <Input
+                    id="supplier-phone"
+                    value={newSupplier.phone}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="supplier-email">Email</Label>
+                  <Input
+                    id="supplier-email"
+                    type="email"
+                    value={newSupplier.email}
+                    onChange={(e) => setNewSupplier({ ...newSupplier, email: e.target.value })}
+                    placeholder="Enter email"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="supplier-lead-time">Lead Time (days)</Label>
+                <Input
+                  id="supplier-lead-time"
+                  type="number"
+                  value={newSupplier.leadTime}
+                  onChange={(e) =>
+                    setNewSupplier({ ...newSupplier, leadTime: Number(e.target.value) })
+                  }
+                  placeholder="Enter lead time in days"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSupplierDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddSupplier}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {selectedSupplier ? 'Update Supplier' : 'Add Supplier'}
+                </Button>
+              </DialogFooter>
             </div>
           </DialogContent>
         </Dialog>

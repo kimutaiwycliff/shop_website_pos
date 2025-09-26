@@ -207,39 +207,11 @@ export const Inventory: CollectionConfig = {
     },
     {
       name: 'supplier',
-      type: 'group',
-      label: 'Supplier Information',
-      fields: [
-        {
-          name: 'name',
-          type: 'text',
-          label: 'Supplier Name',
-        },
-        {
-          name: 'contact',
-          type: 'text',
-          label: 'Contact Person',
-        },
-        {
-          name: 'phone',
-          type: 'text',
-          label: 'Phone Number',
-        },
-        {
-          name: 'email',
-          type: 'email',
-          label: 'Email',
-        },
-        {
-          name: 'leadTime',
-          type: 'number',
-          label: 'Lead Time (days)',
-          min: 0,
-          admin: {
-            description: 'Time it takes to receive new stock',
-          },
-        },
-      ],
+      type: 'relationship',
+      relationTo: 'suppliers',
+      admin: {
+        description: 'Select the supplier for this inventory item',
+      },
     },
     {
       name: 'costInfo',
@@ -301,6 +273,11 @@ export const Inventory: CollectionConfig = {
           if (product) {
             data.productName = product.title
             data.sku = product.sku
+
+            // Auto-populate supplier from product if not set
+            if (!data.supplier && product.supplier) {
+              data.supplier = product.supplier
+            }
           }
         }
 
