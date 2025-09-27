@@ -55,6 +55,7 @@ import BarcodeScanner from '../../components/BarcodeScanner'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import { SearchResult } from '@/lib/advancedSearch'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 // Define types for our inventory data
 interface InventoryItem {
@@ -367,7 +368,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
               setSelectedItemForAdjustment(inventoryItem.id)
               setShowStockAdjustment(true)
             } else {
-              alert(`Product "${productData.title}" not found in inventory`)
+              toast.error(`Product "${productData.title}" not found in inventory`)
             }
           } else {
             const errorText = await response.text().catch(() => 'Unknown error')
@@ -377,11 +378,13 @@ const InventoryManagementComponent: React.FC<Props> = ({
               response.statusText,
               errorText,
             )
-            alert('Failed to load product details. Please try again.')
+            toast.error('Failed to load product details. Please try again.')
           }
         } catch (error) {
           console.error('Error fetching product:', error)
-          alert('Network error while loading product. Please check your connection and try again.')
+          toast.error(
+            'Network error while loading product. Please check your connection and try again.',
+          )
         } finally {
           setIsSearching(false)
         }
@@ -585,6 +588,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
   )
 
   const handleStockAdjustment = async (itemId: string, quantity: number, reason: string) => {
+    const toastId = toast.loading('Adjusting stock...')
     try {
       setInventoryData((prev) =>
         prev.map((item) => {
@@ -634,9 +638,10 @@ const InventoryManagementComponent: React.FC<Props> = ({
       setSelectedItemForAdjustment(null)
       setAdjustmentQuantity(0)
       setAdjustmentReason('')
+      toast.success('Stock adjusted successfully', { id: toastId })
     } catch (error) {
       console.error('Error adjusting stock:', error)
-      alert('Failed to adjust stock. Please try again.')
+      toast.error('Failed to adjust stock. Please try again.', { id: toastId })
     }
   }
 
@@ -741,7 +746,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
     const itemsToOrder = inventoryData.filter((item) => reorderItems.includes(item.id))
 
     // In a real implementation, this would generate a proper purchase order
-    // For now, we'll just show an alert with the items that would be ordered
+    // For now, we'll just show a toast with the items that would be ordered
     const orderDetails = itemsToOrder
       .map((item) => {
         const suggestedOrder = Math.max(10, item.reorderPoint * 2)
@@ -749,7 +754,7 @@ const InventoryManagementComponent: React.FC<Props> = ({
       })
       .join('\n')
 
-    alert(`Purchase Order Generated!
+    toast.success(`Purchase Order Generated!
 
 Items to order:
 ${orderDetails}
@@ -781,11 +786,11 @@ This would typically be sent to the supplier via email or integrated with a proc
           setShowStockAdjustment(true)
           setShowBarcodeScanner(false)
         } else {
-          alert(`Product "${product.title}" not found in inventory`)
+          toast.error(`Product "${product.title}" not found in inventory`)
         }
       } else {
         // Show error - product not found
-        alert(`Product with barcode ${barcode} not found`)
+        toast.error(`Product with barcode ${barcode} not found`)
       }
     },
     [products, findProductByBarcode, inventoryData],
@@ -800,6 +805,7 @@ This would typically be sent to the supplier via email or integrated with a proc
 
   // Add a new product
   const handleAddProduct = async () => {
+    const toastId = toast.loading('Adding product...')
     try {
       const response = await fetch('/api/products', {
         method: 'POST',
@@ -827,13 +833,14 @@ This would typically be sent to the supplier via email or integrated with a proc
         })
         // Refresh the product list
         fetchProducts()
+        toast.success('Product added successfully', { id: toastId })
       } else {
         const errorText = await response.text().catch(() => 'Unknown error')
         throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
     } catch (error) {
       console.error('Error adding product:', error)
-      alert('Failed to add product. Please try again.')
+      toast.error('Failed to add product. Please try again.', { id: toastId })
     }
   }
 
@@ -845,6 +852,7 @@ This would typically be sent to the supplier via email or integrated with a proc
 
   // Add a new supplier
   const handleAddSupplier = async () => {
+    const toastId = toast.loading('Adding supplier...')
     try {
       const response = await fetch('/api/suppliers', {
         method: 'POST',
@@ -874,13 +882,14 @@ This would typically be sent to the supplier via email or integrated with a proc
         })
         // Refresh the supplier list
         fetchSuppliers()
+        toast.success('Supplier added successfully', { id: toastId })
       } else {
         const errorText = await response.text().catch(() => 'Unknown error')
         throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
     } catch (error) {
       console.error('Error adding supplier:', error)
-      alert('Failed to add supplier. Please try again.')
+      toast.error('Failed to add supplier. Please try again.', { id: toastId })
     }
   }
 
@@ -1394,7 +1403,7 @@ This would typically be sent to the supplier via email or integrated with a proc
                                     onClick={() => setAdjustmentQuantity((prev) => prev + 1)}
                                     className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                                   >
-                                    <Plus className="h-3 w-3" />
+                                    <Plus className="h-33 w-3" />
                                   </Button>
                                 </div>
                                 <div className="text-sm text-muted-foreground mt-1">

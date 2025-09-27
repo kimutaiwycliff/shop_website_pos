@@ -45,6 +45,7 @@ import Image from 'next/image'
 import BarcodeScanner from '../../components/BarcodeScanner'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import { SearchResult } from '@/lib/advancedSearch'
+import { toast } from 'sonner'
 
 interface POSItem {
   id: string
@@ -205,7 +206,7 @@ const POSComponent: React.FC<Props> = ({
             // All retries failed
             console.error('Failed to fetch products after', maxRetries, 'attempts:', error)
             // Show user-friendly error message
-            alert('Failed to load products after multiple attempts. Please try again later.')
+            toast.error('Failed to load products after multiple attempts. Please try again later.')
             // Fallback to mock data if API fails
             setProducts(mockProducts)
           }
@@ -240,11 +241,11 @@ const POSComponent: React.FC<Props> = ({
           response.statusText,
           errorText,
         )
-        alert('Failed to search for product by barcode. Please try again.')
+        toast.error('Failed to search for product by barcode. Please try again.')
       }
     } catch (error) {
       console.error('Error finding product by barcode:', error)
-      alert(
+      toast.error(
         'Network error while searching for product. Please check your connection and try again.',
       )
     }
@@ -265,11 +266,13 @@ const POSComponent: React.FC<Props> = ({
         } else {
           const errorText = await response.text().catch(() => 'Unknown error')
           console.error('Failed to fetch product:', response.status, response.statusText, errorText)
-          alert('Failed to load product details. Please try again.')
+          toast.error('Failed to load product details. Please try again.')
         }
       } catch (error) {
         console.error('Error fetching product:', error)
-        alert('Network error while loading product. Please check your connection and try again.')
+        toast.error(
+          'Network error while loading product. Please check your connection and try again.',
+        )
       } finally {
         setIsSearching(false)
       }
@@ -299,7 +302,7 @@ const POSComponent: React.FC<Props> = ({
         setShowBarcodeScanner(false)
       } else {
         // Show error - product not found
-        alert(`Product with barcode ${barcode} not found`)
+        toast.error(`Product with barcode ${barcode} not found`)
       }
     },
     [products, findProductByBarcode],
@@ -423,7 +426,7 @@ const POSComponent: React.FC<Props> = ({
 
     if (stockAvailable <= 0) {
       console.log('Product/variant is out of stock:', product.title + variantInfo)
-      alert(`This product/variant is out of stock and cannot be added to the cart.`)
+      toast.error(`This product/variant is out of stock and cannot be added to the cart.`)
       return
     }
 
@@ -441,7 +444,9 @@ const POSComponent: React.FC<Props> = ({
           'Cannot add more of this product/variant. Stock limit reached for:',
           product.title + variantInfo,
         )
-        alert(`Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`)
+        toast.error(
+          `Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`,
+        )
         return
       }
       console.log('Updating quantity for existing item:', product.title + variantInfo)
@@ -509,7 +514,7 @@ const POSComponent: React.FC<Props> = ({
     // Check if new quantity exceeds stock
     if (newQuantity > stockAvailable) {
       console.log('Cannot update quantity. Stock limit reached for:', item.product.title)
-      alert(`Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`)
+      toast.error(`Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`)
       return
     }
 
@@ -548,9 +553,9 @@ const POSComponent: React.FC<Props> = ({
           const maxDiscount = (item.lineTotal * productMaxDiscount) / 100
           const finalDiscount = Math.min(discountAmount, maxDiscount)
 
-          // Show alert if discount is being capped
+          // Show toast if discount is being capped
           if (discountAmount > maxDiscount) {
-            alert(
+            toast.error(
               `Maximum discount for this product is ${productMaxDiscount}%. Discount has been capped.`,
             )
           }
@@ -572,6 +577,7 @@ const POSComponent: React.FC<Props> = ({
   const processSale = async () => {
     if (cart.length === 0 || !paymentMethod) return
 
+    const toastId = toast.loading('Processing sale...')
     console.log('Processing sale with items:', cart)
 
     try {
@@ -648,11 +654,12 @@ const POSComponent: React.FC<Props> = ({
       clearCart()
       setShowPaymentDialog(false)
 
-      alert('Sale completed successfully!')
+      toast.success('Sale completed successfully!', { id: toastId })
     } catch (error) {
       console.error('Error processing sale:', error)
-      alert(
+      toast.error(
         `There was an error processing the sale: ${(error as Error).message || 'Please try again.'}`,
+        { id: toastId },
       )
     }
   }
