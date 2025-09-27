@@ -6,13 +6,16 @@ import { Header as HeaderType } from '@/payload-types'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
-import { Menu, Search, User, ShoppingCart, X } from 'lucide-react'
+import { Menu, Search, User, ShoppingCart, X, LogOut } from 'lucide-react'
 import gsap from 'gsap'
 import { useCart } from '@/providers/CartContext'
+import { useAuth } from '@/providers/AuthContext'
+import { logout } from '@/lib/actions/auth'
 
 export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
   const [isMounted, setIsMounted] = useState(false)
   const { getCartCount } = useCart()
+  const { user, logout: authLogout } = useAuth()
   const [cartItems, setCartItems] = useState(0)
   const navItems = data?.navItems || []
   const actionButtonsRef = useRef<HTMLDivElement>(null)
@@ -73,6 +76,11 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
         },
       )
     }
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    authLogout() // Call client-side logout as well
   }
 
   // Render desktop navigation item
@@ -160,13 +168,34 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
                   <Search className="mr-2 h-4 w-4" />
                   Search
                 </Link>
-                <Link
-                  href="/account"
-                  className="flex items-center py-2 text-sm font-medium hover:text-primary transition-colors duration-300"
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Account
-                </Link>
+
+                {user ? (
+                  <>
+                    <Link
+                      href="/account"
+                      className="flex items-center py-2 text-sm font-medium hover:text-primary transition-colors duration-300"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Account
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full text-left py-2 text-sm font-medium hover:text-primary transition-colors duration-300"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="flex items-center py-2 text-sm font-medium hover:text-primary transition-colors duration-300"
+                  >
+                    <User className="mr-2 h-4 w-4" />
+                    Login
+                  </Link>
+                )}
+
                 <Link
                   href="/cart"
                   className="flex items-center py-2 text-sm font-medium hover:text-primary transition-colors duration-300"
@@ -198,16 +227,41 @@ export const HeaderNav: React.FC<{ data: HeaderType }> = ({ data }) => {
           </Button>
         </Link>
 
-        <Link href="/login">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="transition-all duration-300 hover:scale-110"
-          >
-            <User className="h-5 w-5" />
-            <span className="sr-only">Account</span>
-          </Button>
-        </Link>
+        {user ? (
+          <div className="flex items-center space-x-1">
+            <Link href="/account">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="transition-all duration-300 hover:scale-110"
+              >
+                <User className="h-5 w-5" />
+                <span className="sr-only">Account</span>
+              </Button>
+            </Link>
+            <button onClick={handleLogout}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="transition-all duration-300 hover:scale-110"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Logout</span>
+              </Button>
+            </button>
+          </div>
+        ) : (
+          <Link href="/login">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="transition-all duration-300 hover:scale-110"
+            >
+              <User className="h-5 w-5" />
+              <span className="sr-only">Login</span>
+            </Button>
+          </Link>
+        )}
 
         <Link href="/cart" className="relative">
           <Button

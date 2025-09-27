@@ -42,10 +42,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utilities/ui'
 import Image from 'next/image'
+import Link from 'next/link'
 import BarcodeScanner from '../../components/BarcodeScanner'
 import { AdvancedSearch } from '@/components/AdvancedSearch'
 import { SearchResult } from '@/lib/advancedSearch'
 import { toast } from 'sonner'
+import { useAuth } from '@/providers/AuthContext'
 
 interface POSItem {
   id: string
@@ -111,6 +113,7 @@ const POSComponent: React.FC<Props> = ({
   taxSettings,
   discountSettings,
 }) => {
+  const { user } = useAuth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [currentCashier, setCurrentCashier] = useState<any>(null)
   const [cart, setCart] = useState<POSItem[]>([])
@@ -677,9 +680,18 @@ const POSComponent: React.FC<Props> = ({
   }
 
   const login = () => {
-    // Mock login - in real app this would authenticate
-    setCurrentCashier({ name: 'John Doe', id: '1' })
-    setIsLocked(false)
+    // Use the authenticated user as the cashier
+    if (user) {
+      setCurrentCashier({
+        name: user.name || user.email,
+        id: user.id,
+        email: user.email,
+      })
+      setIsLocked(false)
+    } else {
+      // If no authenticated user, show error
+      toast.error('Please log in to access the POS system')
+    }
   }
 
   const logout = () => {
@@ -687,6 +699,13 @@ const POSComponent: React.FC<Props> = ({
     setIsLocked(true)
     clearCart()
   }
+
+  // Initialize with authenticated user if available
+  useEffect(() => {
+    if (user && cashierRequired && isLocked) {
+      login()
+    }
+  }, [user, cashierRequired, isLocked])
 
   // Function to apply custom VAT settings
   const applyCustomVat = () => {
@@ -729,8 +748,14 @@ const POSComponent: React.FC<Props> = ({
               <Input id="pin" type="password" placeholder="Enter your PIN" />
             </div>
             <Button onClick={login} className="w-full">
-              Login
+              Login with Account
             </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Don&#39;t have access?{' '}
+              <Link href="/login" className="text-primary hover:underline">
+                Log in to your account
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
