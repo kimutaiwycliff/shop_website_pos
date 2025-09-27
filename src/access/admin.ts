@@ -12,3 +12,13 @@ const admin: Access = ({ req: { user } }) => {
 }
 
 export default admin
+
+export const staff: Access = ({ req: { user } }) => {
+  if (user) {
+    if (checkRole(['staff'], user)) {
+      return true
+    }
+  }
+
+  return false
+}

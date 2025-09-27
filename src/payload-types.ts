@@ -478,7 +478,7 @@ export interface User {
   active?: boolean | null;
   name?: string | null;
   avatar?: (number | null) | Media;
-  roles?: ('admin' | 'editor' | 'user')[] | null;
+  roles?: ('admin' | 'editor' | 'staff' | 'user')[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
