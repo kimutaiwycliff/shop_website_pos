@@ -282,7 +282,19 @@ export async function GET(request: NextRequest) {
       pagination: false,
     })
 
-    const newCustomers = currentCustomers.docs.length
+    // For current customers, we need to handle both users and customers
+    const currentCustomerIds = new Set()
+    currentOrders.docs.forEach((order: any) => {
+      if (order.customer) {
+        const customerId =
+          typeof order.customer === 'object' ? order.customer.value?.id : order.customer
+        if (customerId) {
+          currentCustomerIds.add(customerId)
+        }
+      }
+    })
+
+    const newCustomers = currentCustomerIds.size
     const returningCustomers = 0 // Would need more complex calculation
 
     // Calculate customer retention (simplified)
@@ -363,7 +375,13 @@ export async function GET(request: NextRequest) {
 
     const recentOrdersFormatted = recentOrders.docs.map((order: any) => ({
       id: order.orderNumber,
-      customer: order.customer?.fullName || 'Unknown Customer',
+      customer: order.customer
+        ? typeof order.customer === 'object'
+          ? order.customer.relationTo === 'customers'
+            ? `${order.customer.value?.firstName} ${order.customer.value?.lastName}`
+            : order.customer.value?.name || 'Unknown Customer'
+          : 'Unknown Customer'
+        : 'Walk-in Customer',
       amount: order.total,
       status: order.status,
       time: new Date(order.createdAt).toLocaleDateString(),

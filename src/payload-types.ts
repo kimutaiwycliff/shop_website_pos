@@ -1556,7 +1556,15 @@ export interface OrderConfirmationBlock {
 export interface Order {
   id: number;
   orderNumber: string;
-  customer: number | User;
+  customer?:
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'customers';
+        value: number | Customer;
+      } | null);
   items: {
     product: number | Product;
     quantity: number;
@@ -1601,7 +1609,7 @@ export interface Order {
         id?: string | null;
       }[]
     | null;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'completed';
   tracking?: {
     carrier?: string | null;
     trackingNumber?: string | null;

@@ -1,16 +1,16 @@
-import admin from "@/access/admin"
-import { CollectionConfig } from "payload"
+import admin from '@/access/admin'
+import { CollectionConfig } from 'payload'
 
 export const Orders: CollectionConfig = {
-  slug: "orders",
+  slug: 'orders',
   admin: {
-    useAsTitle: "orderNumber",
-    defaultColumns: ["orderNumber", "customer", "total", "status", "createdAt"],
-    group: "Shop",
+    useAsTitle: 'orderNumber',
+    defaultColumns: ['orderNumber', 'customer', 'total', 'status', 'createdAt'],
+    group: 'Shop',
   },
   access: {
     read: ({ req: { user } }) => {
-      if (user?.roles?.includes("admin")) return true
+      if (user?.roles?.includes('admin')) return true
       if (user) {
         return {
           customer: {
@@ -26,8 +26,8 @@ export const Orders: CollectionConfig = {
   },
   fields: [
     {
-      name: "orderNumber",
-      type: "text",
+      name: 'orderNumber',
+      type: 'text',
       required: true,
       unique: true,
       admin: {
@@ -35,35 +35,35 @@ export const Orders: CollectionConfig = {
       },
     },
     {
-      name: "customer",
-      type: "relationship",
-      relationTo: "users",
-      required: true,
+      name: 'customer',
+      type: 'relationship',
+      relationTo: ['users', 'customers'], // Allow both users and customers
+      required: false, // Make this optional to accommodate POS sales
       admin: {
-        position: "sidebar",
+        position: 'sidebar',
       },
     },
     {
-      name: "items",
-      type: "array",
+      name: 'items',
+      type: 'array',
       required: true,
       minRows: 1,
       fields: [
         {
-          name: "product",
-          type: "relationship",
-          relationTo: "products",
+          name: 'product',
+          type: 'relationship',
+          relationTo: 'products',
           required: true,
         },
         {
-          name: "quantity",
-          type: "number",
+          name: 'quantity',
+          type: 'number',
           required: true,
           min: 1,
         },
         {
-          name: "price",
-          type: "number",
+          name: 'price',
+          type: 'number',
           required: true,
           min: 0,
           admin: {
@@ -71,24 +71,24 @@ export const Orders: CollectionConfig = {
           },
         },
         {
-          name: "selectedVariants",
-          type: "group",
+          name: 'selectedVariants',
+          type: 'group',
           fields: [
             {
-              name: "size",
-              type: "text",
+              name: 'size',
+              type: 'text',
             },
             {
-              name: "color",
-              type: "text",
+              name: 'color',
+              type: 'text',
             },
           ],
         },
       ],
     },
     {
-      name: "subtotal",
-      type: "number",
+      name: 'subtotal',
+      type: 'number',
       required: true,
       min: 0,
       admin: {
@@ -97,17 +97,17 @@ export const Orders: CollectionConfig = {
       },
     },
     {
-      name: "shipping",
-      type: "group",
+      name: 'shipping',
+      type: 'group',
       fields: [
         {
-          name: "method",
-          type: "text",
+          name: 'method',
+          type: 'text',
           required: true,
         },
         {
-          name: "cost",
-          type: "number",
+          name: 'cost',
+          type: 'number',
           required: true,
           min: 0,
           admin: {
@@ -115,56 +115,56 @@ export const Orders: CollectionConfig = {
           },
         },
         {
-          name: "address",
-          type: "group",
+          name: 'address',
+          type: 'group',
           fields: [
             {
-              name: "firstName",
-              type: "text",
+              name: 'firstName',
+              type: 'text',
               required: true,
             },
             {
-              name: "lastName",
-              type: "text",
+              name: 'lastName',
+              type: 'text',
               required: true,
             },
             {
-              name: "address",
-              type: "text",
+              name: 'address',
+              type: 'text',
               required: true,
             },
             {
-              name: "apartment",
-              type: "text",
+              name: 'apartment',
+              type: 'text',
             },
             {
-              name: "city",
-              type: "text",
+              name: 'city',
+              type: 'text',
               required: true,
             },
             {
-              name: "state",
-              type: "text",
+              name: 'state',
+              type: 'text',
               required: true,
             },
             {
-              name: "zipCode",
-              type: "text",
+              name: 'zipCode',
+              type: 'text',
               required: true,
             },
             {
-              name: "country",
-              type: "text",
+              name: 'country',
+              type: 'text',
               required: true,
-              defaultValue: "US",
+              defaultValue: 'US',
             },
           ],
         },
       ],
     },
     {
-      name: "tax",
-      type: "number",
+      name: 'tax',
+      type: 'number',
       required: true,
       min: 0,
       admin: {
@@ -172,8 +172,8 @@ export const Orders: CollectionConfig = {
       },
     },
     {
-      name: "total",
-      type: "number",
+      name: 'total',
+      type: 'number',
       required: true,
       min: 0,
       admin: {
@@ -182,75 +182,75 @@ export const Orders: CollectionConfig = {
       },
     },
     {
-      name: "payment",
-      type: "group",
+      name: 'payment',
+      type: 'group',
       fields: [
         {
-          name: "method",
-          type: "select",
+          name: 'method',
+          type: 'select',
           required: true,
           options: [
             {
-              label: "Credit Card",
-              value: "card",
+              label: 'Credit Card',
+              value: 'card',
             },
             {
-              label: "PayPal",
-              value: "paypal",
+              label: 'PayPal',
+              value: 'paypal',
             },
             {
-              label: "Apple Pay",
-              value: "apple_pay",
+              label: 'Apple Pay',
+              value: 'apple_pay',
             },
             {
-              label: "Google Pay",
-              value: "google_pay",
+              label: 'Google Pay',
+              value: 'google_pay',
             },
             {
-              label: "M-Pesa",
-              value: "mpesa",
+              label: 'M-Pesa',
+              value: 'mpesa',
             },
             {
-              label: "Cash",
-              value: "cash",
+              label: 'Cash',
+              value: 'cash',
             },
           ],
         },
         {
-          name: "status",
-          type: "select",
+          name: 'status',
+          type: 'select',
           required: true,
-          defaultValue: "pending",
+          defaultValue: 'pending',
           options: [
             {
-              label: "Pending",
-              value: "pending",
+              label: 'Pending',
+              value: 'pending',
             },
             {
-              label: "Paid",
-              value: "paid",
+              label: 'Paid',
+              value: 'paid',
             },
             {
-              label: "Failed",
-              value: "failed",
+              label: 'Failed',
+              value: 'failed',
             },
             {
-              label: "Refunded",
-              value: "refunded",
+              label: 'Refunded',
+              value: 'refunded',
             },
             {
-              label: "Partially Paid",
-              value: "partial",
+              label: 'Partially Paid',
+              value: 'partial',
             },
           ],
         },
         {
-          name: "transactionId",
-          type: "text",
+          name: 'transactionId',
+          type: 'text',
         },
         {
-          name: "amountPaid",
-          type: "number",
+          name: 'amountPaid',
+          type: 'number',
           defaultValue: 0,
           min: 0,
           admin: {
@@ -258,8 +258,8 @@ export const Orders: CollectionConfig = {
           },
         },
         {
-          name: "remainingBalance",
-          type: "number",
+          name: 'remainingBalance',
+          type: 'number',
           defaultValue: 0,
           min: 0,
           admin: {
@@ -270,12 +270,12 @@ export const Orders: CollectionConfig = {
       ],
     },
     {
-      name: "paymentInstallments",
-      type: "array",
+      name: 'paymentInstallments',
+      type: 'array',
       fields: [
         {
-          name: "amount",
-          type: "number",
+          name: 'amount',
+          type: 'number',
           required: true,
           min: 0,
           admin: {
@@ -283,109 +283,113 @@ export const Orders: CollectionConfig = {
           },
         },
         {
-          name: "method",
-          type: "select",
+          name: 'method',
+          type: 'select',
           required: true,
           options: [
             {
-              label: "Cash",
-              value: "cash",
+              label: 'Cash',
+              value: 'cash',
             },
             {
-              label: "M-Pesa",
-              value: "mpesa",
+              label: 'M-Pesa',
+              value: 'mpesa',
             },
             {
-              label: "Credit Card",
-              value: "card",
+              label: 'Credit Card',
+              value: 'card',
             },
           ],
         },
         {
-          name: "transactionId",
-          type: "text",
+          name: 'transactionId',
+          type: 'text',
         },
         {
-          name: "paidAt",
-          type: "date",
+          name: 'paidAt',
+          type: 'date',
           required: true,
           defaultValue: () => new Date(),
         },
         {
-          name: "notes",
-          type: "textarea",
+          name: 'notes',
+          type: 'textarea',
         },
       ],
     },
     {
-      name: "status",
-      type: "select",
+      name: 'status',
+      type: 'select',
       required: true,
-      defaultValue: "pending",
+      defaultValue: 'pending',
       options: [
         {
-          label: "Pending",
-          value: "pending",
+          label: 'Pending',
+          value: 'pending',
         },
         {
-          label: "Confirmed",
-          value: "confirmed",
+          label: 'Confirmed',
+          value: 'confirmed',
         },
         {
-          label: "Processing",
-          value: "processing",
+          label: 'Processing',
+          value: 'processing',
         },
         {
-          label: "Shipped",
-          value: "shipped",
+          label: 'Shipped',
+          value: 'shipped',
         },
         {
-          label: "Delivered",
-          value: "delivered",
+          label: 'Delivered',
+          value: 'delivered',
         },
         {
-          label: "Cancelled",
-          value: "cancelled",
+          label: 'Cancelled',
+          value: 'cancelled',
         },
         {
-          label: "Refunded",
-          value: "refunded",
+          label: 'Refunded',
+          value: 'refunded',
+        },
+        {
+          label: 'Completed',
+          value: 'completed',
         },
       ],
       admin: {
-        position: "sidebar",
+        position: 'sidebar',
       },
     },
     {
-      name: "tracking",
-      type: "group",
+      name: 'tracking',
+      type: 'group',
       fields: [
         {
-          name: "carrier",
-          type: "text",
+          name: 'carrier',
+          type: 'text',
         },
         {
-          name: "trackingNumber",
-          type: "text",
+          name: 'trackingNumber',
+          type: 'text',
         },
         {
-          name: "trackingUrl",
-          type: "text",
+          name: 'trackingUrl',
+          type: 'text',
         },
       ],
     },
     {
-      name: "notes",
-      type: "textarea",
+      name: 'notes',
+      type: 'textarea',
       admin: {
-        position: "sidebar",
+        position: 'sidebar',
       },
     },
   ],
   hooks: {
     beforeChange: [
       ({ data, operation }) => {
-        if (operation === "create" && !data.orderNumber) {
+        if (operation === 'create' && !data.orderNumber) {
           data.orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
         }
 
@@ -403,17 +407,20 @@ export const Orders: CollectionConfig = {
 
         if (data.paymentInstallments && data.paymentInstallments.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.payment.amountPaid = data.paymentInstallments.reduce((sum: number, installment: any) => {
-            return sum + installment.amount
-          }, 0)
+          data.payment.amountPaid = data.paymentInstallments.reduce(
+            (sum: number, installment: any) => {
+              return sum + installment.amount
+            },
+            0,
+          )
 
           data.payment.remainingBalance = data.total - data.payment.amountPaid
 
           // Update payment status based on amount paid
           if (data.payment.amountPaid >= data.total) {
-            data.payment.status = "paid"
+            data.payment.status = 'paid'
           } else if (data.payment.amountPaid > 0) {
-            data.payment.status = "partial"
+            data.payment.status = 'partial'
           }
         }
 

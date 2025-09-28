@@ -98,6 +98,24 @@ interface POSCustomer {
   email?: string
 }
 
+// Add interface for customer from API
+interface Customer {
+  id: string
+  firstName: string
+  lastName: string
+  name?: string // For display name
+  phone?: string
+  email?: string
+}
+
+// Add this new interface for customer creation response
+interface CreatedCustomer {
+  id: string
+  name: string
+  phone?: string
+  email?: string
+}
+
 type Props = POSBlockType
 
 const POSComponent: React.FC<Props> = ({
@@ -635,15 +653,96 @@ const POSComponent: React.FC<Props> = ({
       // Wait for all stock updates to complete
       await Promise.all(stockUpdatePromises)
 
-      // Simulate processing
-      console.log('Processing sale:', {
-        cart,
-        customer,
-        paymentMethod,
-        total,
-        amountPaid,
-        change,
+      // For POS sales, we need to provide default values for required fields
+      // that are meant for online orders
+      const defaultShippingAddress = {
+        firstName: 'POS',
+        lastName: 'Customer',
+        address: 'In-Store Purchase',
+        city: 'Nairobi',
+        state: 'Nairobi',
+        zipCode: '00100',
+        country: 'KE',
+      }
+
+      // Create order in the backend
+      const orderData = {
+        // Link to the customer if we have one
+        customer: customer?.id ? { relationTo: 'customers', value: customer.id } : null,
+        items: cart.map((item) => ({
+          product: item.product.id,
+          quantity: item.quantity,
+          price: item.unitPrice,
+          selectedVariants: {
+            size: item.product.selectedSize?.sizeName || null,
+            color: item.product.selectedColor?.colorName || null,
+          },
+        })),
+        subtotal: subtotal,
+        tax: taxAmount,
+        total: total,
+        shipping: {
+          method: 'in-store',
+          cost: 0,
+          address: defaultShippingAddress,
+        },
+        payment: {
+          method: paymentMethod,
+          status: 'paid', // Valid status value
+          amountPaid: amountPaid,
+          remainingBalance: change > 0 ? 0 : Math.abs(change),
+        },
+        status: 'completed', // Valid status value
+        notes: customer
+          ? `POS sale for customer: ${customer.name} (${customer.phone || customer.email || 'no contact info'})`
+          : 'POS sale (no customer specified)',
+      }
+
+      const orderResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
       })
+
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text().catch(() => 'Unknown error')
+        throw new Error(`Failed to create order: ${orderResponse.status} ${errorText}`)
+      }
+
+      const order = await orderResponse.json()
+      console.log('Order created:', order)
+
+      // Create transaction for the sale
+      const transactionData = {
+        type: 'sale',
+        status: 'completed',
+        amount: total,
+        currency: 'KES',
+        order: order.id,
+        customer: customer?.id || null,
+        paymentMethod: paymentMethod,
+        notes: `POS sale at ${storeName}`,
+      }
+
+      const transactionResponse = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transactionData),
+      })
+
+      if (!transactionResponse.ok) {
+        const errorText = await transactionResponse.text().catch(() => 'Unknown error')
+        console.error('Failed to create transaction:', transactionResponse.status, errorText)
+        // Don't throw an error here as the order was created successfully
+        // We just want to log the transaction creation failure
+      } else {
+        const transaction = await transactionResponse.json()
+        console.log('Transaction created:', transaction)
+      }
 
       // Print receipt if enabled
       if (enableReceiptPrinting) {
@@ -706,6 +805,163 @@ const POSComponent: React.FC<Props> = ({
       login()
     }
   }, [user, cashierRequired, isLocked])
+
+  // Update the setShowCustomerDialog handler to properly save customer data
+  const handleSaveCustomer = async () => {
+    if (!customer?.name) {
+      toast.error('Customer name is required')
+      return
+    }
+
+    try {
+      // Split the name into first and last name (assuming space separated)
+      const nameParts = customer.name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
+      // Check if customer already exists by phone or email
+      let customerId = customer.id
+
+      if (!customerId) {
+        // Create new customer in the customers collection
+        const customerData = {
+          firstName: firstName,
+          lastName: lastName,
+          email: customer.email,
+          phone: customer.phone,
+        }
+
+        const response = await fetch('/api/customers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(customerData),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error')
+          throw new Error(`Failed to create customer: ${response.status} ${errorText}`)
+        }
+
+        const createdCustomer: Customer = await response.json()
+        // Format the created customer for our state
+        const formattedCustomer = {
+          ...createdCustomer,
+          name: `${createdCustomer.firstName} ${createdCustomer.lastName}`,
+        }
+        setCustomer(formattedCustomer)
+        toast.success('Customer saved successfully')
+      } else {
+        // Update existing customer
+        const response = await fetch(`/api/customers/${customerId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: firstName,
+            lastName: lastName,
+            email: customer.email,
+            phone: customer.phone,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error')
+          throw new Error(`Failed to update customer: ${response.status} ${errorText}`)
+        }
+
+        const updatedCustomer: Customer = await response.json()
+        // Format the updated customer for our state
+        const formattedCustomer = {
+          ...updatedCustomer,
+          name: `${updatedCustomer.firstName} ${updatedCustomer.lastName}`,
+        }
+        setCustomer(formattedCustomer)
+        toast.success('Customer updated successfully')
+      }
+
+      setShowCustomerDialog(false)
+      setCustomers([])
+      setCustomerSearchQuery('')
+    } catch (error) {
+      console.error('Error saving customer:', error)
+      toast.error(`Failed to save customer: ${(error as Error).message}`)
+    }
+  }
+
+  // Add state for customer search and selection
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('')
+  const [isSearchingCustomers, setIsSearchingCustomers] = useState(false)
+
+  // Fetch customers function
+  const fetchCustomers = useCallback(async (query: string = '') => {
+    if (!query) {
+      setCustomers([])
+      return
+    }
+
+    setIsSearchingCustomers(true)
+    try {
+      // Build query parameters
+      const params = new URLSearchParams()
+      params.append('limit', '10')
+
+      // Search by name, phone, or email
+      if (query) {
+        params.append('or[0][firstName][contains]', query)
+        params.append('or[1][lastName][contains]', query)
+        params.append('or[2][phone][contains]', query)
+        params.append('or[3][email][contains]', query)
+      }
+
+      const response = await fetch(`/api/customers?${params.toString()}`)
+
+      if (response.ok) {
+        const result = await response.json()
+        // Format customers for display
+        const formattedCustomers = result.docs.map((cust: any) => ({
+          ...cust,
+          name: `${cust.firstName} ${cust.lastName}`,
+        }))
+        setCustomers(formattedCustomers)
+      } else {
+        console.error('Failed to fetch customers')
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+    } finally {
+      setIsSearchingCustomers(false)
+    }
+  }, [])
+
+  // Debounced customer search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (customerSearchQuery.length >= 2) {
+        fetchCustomers(customerSearchQuery)
+      } else if (customerSearchQuery.length === 0) {
+        setCustomers([])
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [customerSearchQuery, fetchCustomers])
+
+  // Function to select an existing customer
+  const selectCustomer = (customer: Customer) => {
+    setCustomer({
+      id: customer.id,
+      name: customer.name || `${customer.firstName} ${customer.lastName}`,
+      phone: customer.phone,
+      email: customer.email,
+    })
+    setCustomers([])
+    setCustomerSearchQuery('')
+    setShowCustomerDialog(false)
+  }
 
   // Function to apply custom VAT settings
   const applyCustomVat = () => {
@@ -1119,29 +1375,95 @@ const POSComponent: React.FC<Props> = ({
                     <DialogTitle>Customer Information</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="customer-name">Name</Label>
-                      <Input
-                        id="customer-name"
-                        placeholder="Customer name"
-                        value={customer?.name || ''}
-                        onChange={(e) => setCustomer((prev) => ({ ...prev, name: e.target.value }))}
-                      />
+                    {/* Customer Search */}
+                    <div className="space-y-2">
+                      <Label htmlFor="customer-search">Search Existing Customers</Label>
+                      <div className="relative">
+                        <Input
+                          id="customer-search"
+                          placeholder="Search by name, phone, or email"
+                          value={customerSearchQuery}
+                          onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                          className="pr-10"
+                        />
+                        {isSearchingCustomers && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Search Results */}
+                      {customerSearchQuery.length >= 2 && customers.length > 0 && (
+                        <div className="border rounded-md max-h-40 overflow-y-auto">
+                          {customers.map((cust) => (
+                            <div
+                              key={cust.id}
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b last:border-b-0"
+                              onClick={() => selectCustomer(cust)}
+                            >
+                              <div className="font-medium">{cust.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {cust.phone} {cust.email ? `• ${cust.email}` : ''}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {customerSearchQuery.length >= 2 &&
+                        customers.length === 0 &&
+                        !isSearchingCustomers && (
+                          <div className="text-sm text-muted-foreground p-2">
+                            No customers found. Add a new customer below.
+                          </div>
+                        )}
                     </div>
-                    <div>
-                      <Label htmlFor="customer-phone">Phone</Label>
-                      <Input
-                        id="customer-phone"
-                        placeholder="Phone number"
-                        value={customer?.phone || ''}
-                        onChange={(e) =>
-                          setCustomer((prev) => ({ ...prev, phone: e.target.value }))
-                        }
-                      />
+
+                    <Separator />
+
+                    {/* Add New Customer Form */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Or Add New Customer</h3>
+                      <div>
+                        <Label htmlFor="customer-name">Name *</Label>
+                        <Input
+                          id="customer-name"
+                          placeholder="Customer name"
+                          value={customer?.name || ''}
+                          onChange={(e) =>
+                            setCustomer((prev) => ({ ...prev, name: e.target.value }))
+                          }
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customer-phone">Phone</Label>
+                        <Input
+                          id="customer-phone"
+                          placeholder="Phone number"
+                          value={customer?.phone || ''}
+                          onChange={(e) =>
+                            setCustomer((prev) => ({ ...prev, phone: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="customer-email">Email</Label>
+                        <Input
+                          id="customer-email"
+                          type="email"
+                          placeholder="Email address"
+                          value={customer?.email || ''}
+                          onChange={(e) =>
+                            setCustomer((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <Button onClick={handleSaveCustomer} className="w-full">
+                        Save Customer
+                      </Button>
                     </div>
-                    <Button onClick={() => setShowCustomerDialog(false)} className="w-full">
-                      Save Customer
-                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
