@@ -75,6 +75,17 @@ interface InventoryItem {
     inStock: number
     lowStockThreshold?: number
     costPrice?: number
+    // Add variant information
+    sizes?: Array<{
+      sizeName: string
+      sizeCode?: string
+      inStock: boolean
+      stockQuantity: number
+    }>
+    colors?: Array<{
+      colorName: string
+      colorCode?: string
+    }>
   }
   currentStock: number
   minStockLevel: number
@@ -173,6 +184,17 @@ const InventoryManagementComponent: React.FC<Props> = ({
     leadTime: 7,
   })
 
+  // State for variant restocking
+  const [showVariantRestock, setShowVariantRestock] = useState(false)
+  const [selectedItemForVariantRestock, setSelectedItemForVariantRestock] = useState<string | null>(
+    null,
+  )
+  const [selectedVariant, setSelectedVariant] = useState<{ size?: string; color?: string } | null>(
+    null,
+  )
+  const [variantAdjustmentQuantity, setVariantAdjustmentQuantity] = useState(0)
+  const [variantAdjustmentReason, setVariantAdjustmentReason] = useState('')
+
   // Fetch products from the database
   const fetchProducts = useCallback(async (query?: string) => {
     setIsLoadingProducts(true)
@@ -209,6 +231,19 @@ const InventoryManagementComponent: React.FC<Props> = ({
               inStock: product.inStock,
               lowStockThreshold: product.lowStockThreshold,
               costPrice: product.costPrice,
+              // Include variant information
+              sizes:
+                product.sizes?.map((size: any) => ({
+                  sizeName: size.sizeName,
+                  sizeCode: size.sizeCode,
+                  inStock: size.inStock,
+                  stockQuantity: size.stockQuantity,
+                })) || [],
+              colors:
+                product.colors?.map((color: any) => ({
+                  colorName: color.colorName,
+                  colorCode: color.colorCode,
+                })) || [],
             },
             currentStock: product.inStock,
             minStockLevel: product.lowStockThreshold || 5,
@@ -557,6 +592,32 @@ const InventoryManagementComponent: React.FC<Props> = ({
     }
   }, [])
 
+  // Update variant stock in the database
+  const updateVariantStock = useCallback(async (productId: string, sizes: any[]) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sizes: sizes,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      const updatedProduct = await response.json()
+      return updatedProduct
+    } catch (error) {
+      console.error('Error updating variant stock:', error)
+      throw error
+    }
+  }, [])
+
   // Add stock movement to inventory record
   const addStockMovement = useCallback(
     async (
@@ -642,6 +703,98 @@ const InventoryManagementComponent: React.FC<Props> = ({
     } catch (error) {
       console.error('Error adjusting stock:', error)
       toast.error('Failed to adjust stock. Please try again.', { id: toastId })
+    }
+  }
+
+  // Handle variant stock adjustment
+  const handleVariantStockAdjustment = async (
+    itemId: string,
+    variant: { size?: string; color?: string },
+    quantity: number,
+    reason: string,
+  ) => {
+    const toastId = toast.loading('Adjusting variant stock...')
+    try {
+      // Find the item to get product ID
+      const item = inventoryData.find((item) => item.id === itemId)
+      if (!item) {
+        throw new Error('Item not found')
+      }
+
+      // Update the specific variant stock
+      const updatedSizes =
+        item.product.sizes?.map((size) => {
+          if (size.sizeName === variant.size) {
+            const newStock = Math.max(0, size.stockQuantity + quantity)
+            return {
+              ...size,
+              stockQuantity: newStock,
+              inStock: newStock > 0,
+            }
+          }
+          return size
+        }) || []
+
+      // Recalculate total product stock
+      const totalStock = updatedSizes.reduce((sum, size) => sum + size.stockQuantity, 0)
+
+      const newStatus =
+        totalStock === 0
+          ? 'out_of_stock'
+          : totalStock <= item.minStockLevel
+            ? 'low_stock'
+            : 'in_stock'
+
+      // Update state
+      setInventoryData((prev) =>
+        prev.map((item) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              product: {
+                ...item.product,
+                sizes: updatedSizes,
+                inStock: totalStock,
+              },
+              currentStock: totalStock,
+              status: newStatus,
+              totalValue: totalStock * item.costPrice,
+              lastUpdated: new Date().toISOString(),
+            }
+          }
+          return item
+        }),
+      )
+
+      // Update product stock in database
+      await updateProductStock(item.product.id, totalStock)
+
+      // Update variant stock in database
+      await updateVariantStock(item.product.id, updatedSizes)
+
+      // Add stock movement record
+      const inventoryRecord = inventoryData.find((i) => i.product.id === item.product.id)
+      if (inventoryRecord) {
+        await addStockMovement(
+          inventoryRecord.id,
+          quantity > 0 ? 'restock' : 'adjustment',
+          Math.abs(quantity),
+          `${reason} - ${variant.size ? `Size: ${variant.size}` : ''}${variant.color ? ` Color: ${variant.color}` : ''}`,
+          item.currentStock,
+          totalStock,
+        )
+      }
+
+      console.log('Variant stock adjustment:', { itemId, variant, quantity, reason })
+      setShowVariantRestock(false)
+      setSelectedItemForVariantRestock(null)
+      setSelectedVariant(null)
+      setVariantAdjustmentQuantity(0)
+      setVariantAdjustmentReason('')
+      toast.success('Variant stock adjusted successfully', { id: toastId })
+    } catch (error) {
+      console.error('Error adjusting variant stock:', error)
+      toast.error('Failed to adjust variant stock. Please try again.', { id: toastId })
     }
   }
 
@@ -1285,6 +1438,12 @@ This would typically be sent to the supplier via email or integrated with a proc
                           <div className="text-sm text-muted-foreground">
                             {formatPrice(item.product.price)}
                           </div>
+                          {/* Show variant information if available */}
+                          {item.product.sizes && item.product.sizes.length > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {item.product.sizes.length} variants
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -1307,6 +1466,177 @@ This would typically be sent to the supplier via email or integrated with a proc
                         <span className="font-medium text-foreground">{item.currentStock}</span>
                         {item.currentStock <= item.reorderPoint && (
                           <AlertTriangle className="h-4 w-4 text-orange-500" />
+                        )}
+                        {/* Show variant restock button if variants exist */}
+                        {item.product.sizes && item.product.sizes.length > 0 && (
+                          <Dialog
+                            open={showVariantRestock && selectedItemForVariantRestock === item.id}
+                            onOpenChange={(open) => {
+                              setShowVariantRestock(open)
+                              if (!open) {
+                                setSelectedItemForVariantRestock(null)
+                                setSelectedVariant(null)
+                              }
+                            }}
+                          >
+                            <DialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedItemForVariantRestock(item.id)}
+                                className="border-input text-foreground hover:bg-accent hover:text-accent-foreground ml-2"
+                              >
+                                <Plus className="h-3 w-3 mr-1" /> Variants
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-background text-foreground max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="text-foreground">
+                                  Restock Variants - {item.product.title}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label className="text-foreground">
+                                    Current Stock: {item.currentStock}
+                                  </Label>
+                                </div>
+
+                                {/* Variant Selection */}
+                                <div className="grid grid-cols-2 gap-4">
+                                  {item.product.sizes && item.product.sizes.length > 0 && (
+                                    <div>
+                                      <Label className="text-foreground">Size</Label>
+                                      <Select
+                                        value={selectedVariant?.size || ''}
+                                        onValueChange={(value) =>
+                                          setSelectedVariant((prev) => ({ ...prev, size: value }))
+                                        }
+                                      >
+                                        <SelectTrigger className="border-input text-foreground bg-background">
+                                          <SelectValue placeholder="Select size" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background text-foreground border-border">
+                                          {item.product.sizes.map((size) => (
+                                            <SelectItem key={size.sizeName} value={size.sizeName}>
+                                              {size.sizeName} ({size.stockQuantity} in stock)
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+
+                                  {item.product.colors && item.product.colors.length > 0 && (
+                                    <div>
+                                      <Label className="text-foreground">Color</Label>
+                                      <Select
+                                        value={selectedVariant?.color || ''}
+                                        onValueChange={(value) =>
+                                          setSelectedVariant((prev) => ({ ...prev, color: value }))
+                                        }
+                                      >
+                                        <SelectTrigger className="border-input text-foreground bg-background">
+                                          <SelectValue placeholder="Select color" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background text-foreground border-border">
+                                          {item.product.colors.map((color) => (
+                                            <SelectItem
+                                              key={color.colorName}
+                                              value={color.colorName}
+                                            >
+                                              {color.colorName}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Quantity Adjustment */}
+                                <div>
+                                  <Label htmlFor="variant-adjustment" className="text-foreground">
+                                    Adjustment Quantity
+                                  </Label>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        setVariantAdjustmentQuantity((prev) => prev - 1)
+                                      }
+                                      className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                                      disabled={variantAdjustmentQuantity <= -item.currentStock}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <Input
+                                      id="variant-adjustment"
+                                      type="number"
+                                      value={variantAdjustmentQuantity}
+                                      onChange={(e) =>
+                                        setVariantAdjustmentQuantity(Number(e.target.value))
+                                      }
+                                      className="w-20 text-center border-input text-foreground bg-background"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        setVariantAdjustmentQuantity((prev) => prev + 1)
+                                      }
+                                      className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Reason */}
+                                <div>
+                                  <Label htmlFor="variant-reason" className="text-foreground">
+                                    Reason
+                                  </Label>
+                                  <Select
+                                    value={variantAdjustmentReason}
+                                    onValueChange={setVariantAdjustmentReason}
+                                  >
+                                    <SelectTrigger className="border-input text-foreground bg-background">
+                                      <SelectValue placeholder="Select reason" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-background text-foreground border-border">
+                                      <SelectItem value="restock">Restock</SelectItem>
+                                      <SelectItem value="damage">Damage/Loss</SelectItem>
+                                      <SelectItem value="return">Customer Return</SelectItem>
+                                      <SelectItem value="adjustment">
+                                        Inventory Count Adjustment
+                                      </SelectItem>
+                                      <SelectItem value="transfer">Store Transfer</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {/* Apply Button */}
+                                <Button
+                                  onClick={() => {
+                                    if (selectedVariant?.size) {
+                                      handleVariantStockAdjustment(
+                                        item.id,
+                                        selectedVariant,
+                                        variantAdjustmentQuantity,
+                                        variantAdjustmentReason,
+                                      )
+                                    }
+                                  }}
+                                  disabled={!selectedVariant?.size || !variantAdjustmentReason}
+                                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
+                                  Apply Adjustment
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     </TableCell>
@@ -1334,6 +1664,7 @@ This would typically be sent to the supplier via email or integrated with a proc
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {/* Replace the existing stock adjustment dialog with a simplified version */}
                         <Dialog
                           open={showStockAdjustment && selectedItemForAdjustment === item.id}
                           onOpenChange={(open) => {
@@ -1403,7 +1734,7 @@ This would typically be sent to the supplier via email or integrated with a proc
                                     onClick={() => setAdjustmentQuantity((prev) => prev + 1)}
                                     className="border-input text-foreground hover:bg-accent hover:text-accent-foreground"
                                   >
-                                    <Plus className="h-33 w-3" />
+                                    <Plus className="h-3 w-3" />
                                   </Button>
                                 </div>
                                 <div className="text-sm text-muted-foreground mt-1">
