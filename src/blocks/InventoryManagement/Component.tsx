@@ -75,16 +75,30 @@ interface InventoryItem {
     inStock: number
     lowStockThreshold?: number
     costPrice?: number
-    // Add variant information
+    // Add variant information with images
     sizes?: Array<{
       sizeName: string
       sizeCode?: string
       inStock: boolean
       stockQuantity: number
+      // Add size variant images
+      images?: Array<{
+        image: {
+          url: string
+          alt: string
+        }
+      }>
     }>
     colors?: Array<{
       colorName: string
       colorCode?: string
+      // Add color variant images
+      images?: Array<{
+        image: {
+          url: string
+          alt: string
+        }
+      }>
     }>
   }
   currentStock: number
@@ -231,18 +245,22 @@ const InventoryManagementComponent: React.FC<Props> = ({
               inStock: product.inStock,
               lowStockThreshold: product.lowStockThreshold,
               costPrice: product.costPrice,
-              // Include variant information
+              // Include variant information with images
               sizes:
                 product.sizes?.map((size: any) => ({
                   sizeName: size.sizeName,
                   sizeCode: size.sizeCode,
                   inStock: size.inStock,
                   stockQuantity: size.stockQuantity,
+                  // Include size variant images
+                  images: size.images,
                 })) || [],
               colors:
                 product.colors?.map((color: any) => ({
                   colorName: color.colorName,
                   colorCode: color.colorCode,
+                  // Include color variant images
+                  images: color.images,
                 })) || [],
             },
             currentStock: product.inStock,
@@ -1423,16 +1441,41 @@ This would typically be sent to the supplier via email or integrated with a proc
                     )}
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {item.product.images?.[0] && (
-                          <div className="w-10 h-10 relative">
+                        {/* Show variant image with improved size and styling */}
+                        <div className="w-12 h-12 relative rounded overflow-hidden border border-gray-200 dark:border-gray-700">
+                          {item.product.sizes &&
+                          item.product.sizes.length > 0 &&
+                          item.product.sizes[0].images?.[0] ? (
+                            <Image
+                              src={item.product.sizes[0].images[0].image.url}
+                              alt={item.product.sizes[0].images[0].image.alt}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : item.product.colors &&
+                            item.product.colors.length > 0 &&
+                            item.product.colors[0].images?.[0] ? (
+                            <Image
+                              src={item.product.colors[0].images[0].image.url}
+                              alt={item.product.colors[0].images[0].image.alt}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : item.product.images?.[0] ? (
                             <Image
                               src={item.product.images[0].image.url}
                               alt={item.product.images[0].image.alt}
                               fill
-                              className="object-cover rounded"
+                              className="object-cover"
                             />
-                          </div>
-                        )}
+                          ) : (
+                            <div className="bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl w-full h-full flex items-center justify-center">
+                              <span className="text-gray-400 dark:text-gray-500 text-xs">
+                                No image
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         <div>
                           <div className="font-medium text-foreground">{item.product.title}</div>
                           <div className="text-sm text-muted-foreground">
@@ -1496,6 +1539,69 @@ This would typically be sent to the supplier via email or integrated with a proc
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
+                                {/* Show selected variant image */}
+                                <div className="flex flex-col items-center gap-3">
+                                  <div className="w-32 h-32 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                                    {selectedVariant?.size &&
+                                    item.product.sizes?.find(
+                                      (size) => size.sizeName === selectedVariant.size,
+                                    )?.images?.[0] ? (
+                                      <Image
+                                        src={
+                                          item.product.sizes.find(
+                                            (size) => size.sizeName === selectedVariant.size,
+                                          )!.images![0].image.url
+                                        }
+                                        alt={
+                                          item.product.sizes.find(
+                                            (size) => size.sizeName === selectedVariant.size,
+                                          )!.images![0].image.alt
+                                        }
+                                        fill
+                                        className="object-contain rounded"
+                                      />
+                                    ) : selectedVariant?.color &&
+                                      item.product.colors?.find(
+                                        (color) => color.colorName === selectedVariant.color,
+                                      )?.images?.[0] ? (
+                                      <Image
+                                        src={
+                                          item.product.colors.find(
+                                            (color) => color.colorName === selectedVariant.color,
+                                          )!.images![0].image.url
+                                        }
+                                        alt={
+                                          item.product.colors.find(
+                                            (color) => color.colorName === selectedVariant.color,
+                                          )!.images![0].image.alt
+                                        }
+                                        fill
+                                        className="object-contain rounded"
+                                      />
+                                    ) : item.product.images?.[0] ? (
+                                      <Image
+                                        src={item.product.images[0].image.url}
+                                        alt={item.product.images[0].image.alt}
+                                        fill
+                                        className="object-contain rounded"
+                                      />
+                                    ) : (
+                                      <div className="bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl w-full h-full flex items-center justify-center">
+                                        <span className="text-gray-400 dark:text-gray-500 text-sm">
+                                          No image
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium">{item.product.title}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {selectedVariant?.size && `Size: ${selectedVariant.size}`}
+                                      {selectedVariant?.color && `Color: ${selectedVariant.color}`}
+                                    </div>
+                                  </div>
+                                </div>
+
                                 <div>
                                   <Label className="text-foreground">
                                     Current Stock: {item.currentStock}
@@ -1620,7 +1726,7 @@ This would typically be sent to the supplier via email or integrated with a proc
                                 {/* Apply Button */}
                                 <Button
                                   onClick={() => {
-                                    if (selectedVariant?.size) {
+                                    if (selectedVariant?.size || selectedVariant?.color) {
                                       handleVariantStockAdjustment(
                                         item.id,
                                         selectedVariant,
@@ -1629,7 +1735,10 @@ This would typically be sent to the supplier via email or integrated with a proc
                                       )
                                     }
                                   }}
-                                  disabled={!selectedVariant?.size || !variantAdjustmentReason}
+                                  disabled={
+                                    (!selectedVariant?.size && !selectedVariant?.color) ||
+                                    !variantAdjustmentReason
+                                  }
                                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                                 >
                                   Apply Adjustment

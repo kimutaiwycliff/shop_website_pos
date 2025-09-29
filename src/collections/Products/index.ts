@@ -224,6 +224,40 @@ export const Products: CollectionConfig = {
                     description: 'Image showing this color variant',
                   },
                 },
+                // Add images for color variants
+                {
+                  name: 'images',
+                  type: 'array',
+                  label: 'Color Variant Images',
+                  admin: {
+                    description: 'Optional images specific to this color variant',
+                    initCollapsed: true,
+                  },
+                  fields: [
+                    {
+                      name: 'image',
+                      type: 'upload',
+                      relationTo: 'media',
+                      required: true,
+                      admin: {
+                        description: 'Upload an image for this color variant',
+                      },
+                    },
+                    {
+                      name: 'alt',
+                      type: 'text',
+                      label: 'Alt Text',
+                      required: true,
+                      admin: {
+                        description:
+                          'Describe this image for accessibility and SEO (e.g., "Red cotton t-shirt front view")',
+                        placeholder: 'Briefly describe this image',
+                      },
+                      minLength: 5,
+                      maxLength: 125,
+                    },
+                  ],
+                },
               ],
             },
             {
@@ -290,6 +324,40 @@ export const Products: CollectionConfig = {
                   label: 'Stock Quantity',
                   min: 0,
                   defaultValue: 0,
+                },
+                // Add images for size variants
+                {
+                  name: 'images',
+                  type: 'array',
+                  label: 'Size Variant Images',
+                  admin: {
+                    description: 'Optional images specific to this size variant',
+                    initCollapsed: true,
+                  },
+                  fields: [
+                    {
+                      name: 'image',
+                      type: 'upload',
+                      relationTo: 'media',
+                      required: true,
+                      admin: {
+                        description: 'Upload an image for this size variant',
+                      },
+                    },
+                    {
+                      name: 'alt',
+                      type: 'text',
+                      label: 'Alt Text',
+                      required: true,
+                      admin: {
+                        description:
+                          'Describe this image for accessibility and SEO (e.g., "Large cotton t-shirt front view")',
+                        placeholder: 'Briefly describe this image',
+                      },
+                      minLength: 5,
+                      maxLength: 125,
+                    },
+                  ],
                 },
               ],
             },

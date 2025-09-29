@@ -69,7 +69,7 @@ interface POSItem {
     }>
     inStock: number
     maxDiscountPercent?: number
-    // Add variant information
+    // Add variant information with images
     selectedColor?: {
       colorName: string
       colorCode: string
@@ -77,12 +77,26 @@ interface POSItem {
         url: string
         alt: string
       }
+      // Add color variant images
+      images?: Array<{
+        image: {
+          url: string
+          alt: string
+        }
+      }>
     }
     selectedSize?: {
       sizeName: string
       sizeCode: string
       inStock: boolean
       stockQuantity: number
+      // Add size variant images
+      images?: Array<{
+        image: {
+          url: string
+          alt: string
+        }
+      }>
     }
   }
   quantity: number
@@ -480,14 +494,22 @@ const POSComponent: React.FC<Props> = ({
         id: cartItemId,
         product: {
           ...product,
-          // Add selected variant information
+          // Add selected variant information with images
           selectedColor:
             selectedColor !== null && product.colors && product.colors[selectedColor]
-              ? product.colors[selectedColor]
+              ? {
+                  ...product.colors[selectedColor],
+                  // Include color variant images if available
+                  images: product.colors[selectedColor].images || undefined,
+                }
               : undefined,
           selectedSize:
             selectedSize !== null && product.sizes && product.sizes[selectedSize]
-              ? product.sizes[selectedSize]
+              ? {
+                  ...product.sizes[selectedSize],
+                  // Include size variant images if available
+                  images: product.sizes[selectedSize].images || undefined,
+                }
               : undefined,
         },
         quantity: 1,
@@ -1150,16 +1172,36 @@ const POSComponent: React.FC<Props> = ({
                   onClick={() => product.inStock > 0 && handleProductClick(product)}
                 >
                   <CardContent className="p-3">
-                    {product.images?.[0] && (
-                      <div className="aspect-square relative mb-2">
+                    {/* Display variant image if selected, otherwise default image */}
+                    <div className="aspect-square relative mb-2 rounded overflow-hidden">
+                      {selectedVariants[product.id] &&
+                      product.colors &&
+                      selectedVariants[product.id].colorIndex !== undefined &&
+                      product.colors[selectedVariants[product.id].colorIndex!] &&
+                      product.colors[selectedVariants[product.id].colorIndex!].images?.[0] ? (
+                        <Image
+                          src={
+                            product.colors[selectedVariants[product.id].colorIndex!].images![0]
+                              .image.url
+                          }
+                          alt={
+                            product.colors[selectedVariants[product.id].colorIndex!].images![0]
+                              .image.alt
+                          }
+                          fill
+                          className="object-cover"
+                        />
+                      ) : product.images?.[0] ? (
                         <Image
                           src={product.images[0].image.url}
                           alt={product.images[0].image.alt}
                           fill
-                          className="object-cover rounded"
+                          className="object-cover"
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
+                      )}
+                    </div>
                     <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.title}</h3>
                     <p className="text-xs text-muted-foreground mb-1">SKU: {product.sku}</p>
                     {product.barcode && (
@@ -1215,19 +1257,51 @@ const POSComponent: React.FC<Props> = ({
               </DialogHeader>
               {selectedProduct && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    {selectedProduct.images?.[0] && (
-                      <div className="w-16 h-16 relative">
+                  <div className="flex flex-col items-center gap-3">
+                    {/* Display variant image with improved size and styling */}
+                    <div className="w-40 h-40 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                      {selectedColor !== null &&
+                      selectedProduct.colors &&
+                      selectedProduct.colors[selectedColor] &&
+                      (selectedProduct.colors[selectedColor].images?.[0] ||
+                        selectedProduct.colors[selectedColor].colorImage) ? (
+                        <Image
+                          src={
+                            selectedProduct.colors[selectedColor].images?.[0]?.image?.url ||
+                            selectedProduct.colors[selectedColor].colorImage?.url
+                          }
+                          alt={
+                            selectedProduct.colors[selectedColor].images?.[0]?.image?.alt ||
+                            selectedProduct.colors[selectedColor].colorName
+                          }
+                          fill
+                          className="object-contain rounded"
+                        />
+                      ) : selectedSize !== null &&
+                        selectedProduct.sizes &&
+                        selectedProduct.sizes[selectedSize] &&
+                        selectedProduct.sizes[selectedSize].images?.[0] ? (
+                        <Image
+                          src={selectedProduct.sizes[selectedSize].images[0].image.url}
+                          alt={selectedProduct.sizes[selectedSize].images[0].image.alt}
+                          fill
+                          className="object-contain rounded"
+                        />
+                      ) : selectedProduct.images?.[0] ? (
                         <Image
                           src={selectedProduct.images[0].image.url}
                           alt={selectedProduct.images[0].image.alt}
                           fill
-                          className="object-cover rounded"
+                          className="object-contain rounded"
                         />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="font-medium">{selectedProduct.title}</h3>
+                      ) : (
+                        <div className="bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl w-full h-full flex items-center justify-center">
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">No image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-medium text-lg">{selectedProduct.title}</h3>
                       <p className="text-sm text-muted-foreground">
                         {formatPrice(selectedProduct.price)}
                       </p>
@@ -1501,20 +1575,64 @@ const POSComponent: React.FC<Props> = ({
                 >
                   <div className="space-y-3">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm line-clamp-2">{item.product.title}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {formatPrice(item.unitPrice)} each
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
-                            Stock: {item.product.inStock}
-                          </span>
-                          {item.quantity >= item.product.inStock && (
-                            <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
-                              Max available
-                            </span>
+                      {/* Display variant image in cart item */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 relative rounded overflow-hidden">
+                          {/* Show variant image if available, otherwise default image */}
+                          {item.product.selectedColor?.images?.[0] ? (
+                            <Image
+                              src={item.product.selectedColor.images[0].image.url}
+                              alt={item.product.selectedColor.images[0].image.alt}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : item.product.selectedSize?.images?.[0] ? (
+                            <Image
+                              src={item.product.selectedSize.images[0].image.url}
+                              alt={item.product.selectedSize.images[0].image.alt}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : item.product.images?.[0] ? (
+                            <Image
+                              src={item.product.images[0].image.url}
+                              alt={item.product.images[0].image.alt}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
                           )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm line-clamp-2">{item.product.title}</h4>
+                          {/* Show selected variant information */}
+                          {(item.product.selectedColor || item.product.selectedSize) && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {item.product.selectedColor && (
+                                <span>{item.product.selectedColor.colorName}</span>
+                              )}
+                              {item.product.selectedColor && item.product.selectedSize && (
+                                <span> / </span>
+                              )}
+                              {item.product.selectedSize && (
+                                <span>{item.product.selectedSize.sizeName}</span>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {formatPrice(item.unitPrice)} each
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
+                              Stock: {item.product.inStock}
+                            </span>
+                            {item.quantity >= item.product.inStock && (
+                              <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+                                Max available
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Button

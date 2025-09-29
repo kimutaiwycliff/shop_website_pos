@@ -978,6 +978,22 @@ export interface Product {
          * Image showing this color variant
          */
         colorImage?: (number | null) | Media;
+        /**
+         * Optional images specific to this color variant
+         */
+        images?:
+          | {
+              /**
+               * Upload an image for this color variant
+               */
+              image: number | Media;
+              /**
+               * Describe this image for accessibility and SEO (e.g., "Red cotton t-shirt front view")
+               */
+              alt: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -1022,6 +1038,22 @@ export interface Product {
           | null;
         inStock?: boolean | null;
         stockQuantity?: number | null;
+        /**
+         * Optional images specific to this size variant
+         */
+        images?:
+          | {
+              /**
+               * Upload an image for this size variant
+               */
+              image: number | Media;
+              /**
+               * Describe this image for accessibility and SEO (e.g., "Large cotton t-shirt front view")
+               */
+              alt: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -2785,6 +2817,13 @@ export interface ProductsSelect<T extends boolean = true> {
         colorName?: T;
         colorCode?: T;
         colorImage?: T;
+        images?:
+          | T
+          | {
+              image?: T;
+              alt?: T;
+              id?: T;
+            };
         id?: T;
       };
   sizes?:
@@ -2794,6 +2833,13 @@ export interface ProductsSelect<T extends boolean = true> {
         sizeCode?: T;
         inStock?: T;
         stockQuantity?: T;
+        images?:
+          | T
+          | {
+              image?: T;
+              alt?: T;
+              id?: T;
+            };
         id?: T;
       };
   sku?: T;
