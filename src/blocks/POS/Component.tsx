@@ -87,7 +87,7 @@ interface POSItem {
   }
   quantity: number
   unitPrice: number
-  discount: number
+  discount: number // Discount amount applied to this item
   lineTotal: number
 }
 
@@ -492,7 +492,7 @@ const POSComponent: React.FC<Props> = ({
         },
         quantity: 1,
         unitPrice: product.price,
-        discount: 0,
+        discount: 0, // No discount initially
         lineTotal: product.price,
       }
 
@@ -549,7 +549,17 @@ const POSComponent: React.FC<Props> = ({
       cart.map((cartItem) => {
         if (cartItem.id === itemId) {
           const lineTotal = newQuantity * cartItem.unitPrice
-          return { ...cartItem, quantity: newQuantity, lineTotal }
+          // Preserve the discount percentage when updating quantity
+          const discountPercentage =
+            cartItem.discount > 0 ? (cartItem.discount / cartItem.lineTotal) * 100 : 0
+          const newDiscount = (lineTotal * discountPercentage) / 100
+
+          return {
+            ...cartItem,
+            quantity: newQuantity,
+            lineTotal,
+            discount: newDiscount,
+          }
         }
         return cartItem
       }),
@@ -560,6 +570,7 @@ const POSComponent: React.FC<Props> = ({
     setCart(cart.filter((item) => item.id !== itemId))
   }
 
+  // Update the applyDiscount function to properly calculate the discounted total
   const applyDiscount = (itemId: string, discountAmount: number) => {
     setCart(
       cart.map((item) => {
@@ -595,6 +606,7 @@ const POSComponent: React.FC<Props> = ({
     setPaymentMethod('')
   }
 
+  // Update the processSale function to properly account for discounts in the order
   const processSale = async () => {
     if (cart.length === 0 || !paymentMethod) return
 
@@ -664,6 +676,9 @@ const POSComponent: React.FC<Props> = ({
         zipCode: '00100',
         country: 'KE',
       }
+
+      // Calculate the total discount for the order
+      const totalDiscount = cart.reduce((sum, item) => sum + item.discount, 0)
 
       // Create order in the backend
       const orderData = {
@@ -1584,8 +1599,16 @@ const POSComponent: React.FC<Props> = ({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>
+                    {formatPrice(subtotal + cart.reduce((sum, item) => sum + item.discount, 0))}
+                  </span>
                 </div>
+                {cart.some((item) => item.discount > 0) && (
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
+                    <span>Discount</span>
+                    <span>-{formatPrice(cart.reduce((sum, item) => sum + item.discount, 0))}</span>
+                  </div>
+                )}
                 {!taxIncluded && (
                   <div className="flex justify-between">
                     <span>Tax ({taxRate}%)</span>
@@ -1733,6 +1756,22 @@ const POSComponent: React.FC<Props> = ({
                 }}
               />
             </div>
+            <Button
+              onClick={() => {
+                if (selectedItemForDiscount) {
+                  const input = document.getElementById('discount-amount') as HTMLInputElement
+                  const discountAmount = Number(input.value)
+                  if (!isNaN(discountAmount) && discountAmount > 0) {
+                    applyDiscount(selectedItemForDiscount, discountAmount)
+                  }
+                  setShowDiscountDialog(false)
+                  setSelectedItemForDiscount(null)
+                }
+              }}
+              className="w-full"
+            >
+              Apply Discount
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
