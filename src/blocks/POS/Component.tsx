@@ -1736,9 +1736,10 @@ const POSComponent: React.FC<Props> = ({
                           </p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
-                              Stock: {item.product.inStock}
+                              Stock: {item.product.selectedVariant?.stock || item.product.inStock}
                             </span>
-                            {item.quantity >= item.product.inStock && (
+                            {item.quantity >=
+                              (item.product.selectedVariant?.stock || item.product.inStock) && (
                               <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
                                 Max available
                               </span>
