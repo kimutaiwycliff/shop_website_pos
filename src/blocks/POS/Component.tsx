@@ -70,27 +70,13 @@ interface POSItem {
     inStock: number
     maxDiscountPercent?: number
     // Add variant information with images
-    selectedColor?: {
-      colorName: string
-      colorCode: string
-      colorImage?: {
-        url: string
-        alt: string
-      }
-      // Add color variant images
-      images?: Array<{
-        image: {
-          url: string
-          alt: string
-        }
-      }>
-    }
-    selectedSize?: {
-      sizeName: string
-      sizeCode: string
-      inStock: boolean
-      stockQuantity: number
-      // Add size variant images
+    selectedVariant?: {
+      color: string
+      size: string
+      sku: string
+      barcode?: string
+      price: number
+      stock: number
       images?: Array<{
         image: {
           url: string
@@ -170,8 +156,7 @@ const POSComponent: React.FC<Props> = ({
   const [customTaxRate, setCustomTaxRate] = useState<number | null>(null)
   const [customTaxIncluded, setCustomTaxIncluded] = useState<boolean | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const [selectedColor, setSelectedColor] = useState<number | null>(null)
-  const [selectedSize, setSelectedSize] = useState<number | null>(null)
+  const [selectedVariant, setSelectedVariant] = useState<number | null>(null)
   const [showVariantDialog, setShowVariantDialog] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, { colorIndex?: number; sizeIndex?: number }>
@@ -422,14 +407,12 @@ const POSComponent: React.FC<Props> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleProductClick = (product: any) => {
     // Check if product has variants
-    const hasColors = product.colors && product.colors.length > 0
-    const hasSizes = product.sizes && product.sizes.length > 0
+    const hasVariants = product.variants && product.variants.length > 0
 
-    if (hasColors || hasSizes) {
+    if (hasVariants) {
       // Show variant selection dialog
       setSelectedProduct(product)
-      setSelectedColor(null)
-      setSelectedSize(null)
+      setSelectedVariant(null)
       setShowVariantDialog(true)
     } else {
       // No variants, add directly to cart
@@ -444,19 +427,14 @@ const POSComponent: React.FC<Props> = ({
     // Check if product/variant is in stock
     let stockAvailable = product.inStock
     let variantInfo = ''
+    let selectedVariantData = null
 
-    // If we have selected variants, use their stock info
-    if (selectedProduct && (selectedColor !== null || selectedSize !== null)) {
-      if (selectedColor !== null && product.colors && product.colors[selectedColor]) {
-        const color = product.colors[selectedColor]
-        variantInfo += ` ${color.colorName}`
-      }
-
-      if (selectedSize !== null && product.sizes && product.sizes[selectedSize]) {
-        const size = product.sizes[selectedSize]
-        variantInfo += ` ${size.sizeName}`
-        stockAvailable = size.stockQuantity
-      }
+    // If we have selected variant, use its stock info
+    if (selectedProduct && selectedVariant) {
+      const variant = selectedProduct.variants[selectedVariant]
+      variantInfo = ` ${variant.color} ${variant.size}`
+      stockAvailable = variant.stock
+      selectedVariantData = variant
     }
 
     if (stockAvailable <= 0) {
@@ -466,9 +444,8 @@ const POSComponent: React.FC<Props> = ({
     }
 
     // Create a unique ID for the cart item that includes variant information
-    const cartItemId = selectedProduct
-      ? `${product.id}-${selectedColor !== null ? selectedColor : 'nocolor'}-${selectedSize !== null ? selectedSize : 'nosize'}`
-      : product.id
+    const cartItemId =
+      selectedProduct && selectedVariant !== null ? `${product.id}-${selectedVariant}` : product.id
 
     const existingItem = cart.find((item) => item.id === cartItemId)
 
@@ -495,27 +472,22 @@ const POSComponent: React.FC<Props> = ({
         product: {
           ...product,
           // Add selected variant information with images
-          selectedColor:
-            selectedColor !== null && product.colors && product.colors[selectedColor]
-              ? {
-                  ...product.colors[selectedColor],
-                  // Include color variant images if available
-                  images: product.colors[selectedColor].images || undefined,
-                }
-              : undefined,
-          selectedSize:
-            selectedSize !== null && product.sizes && product.sizes[selectedSize]
-              ? {
-                  ...product.sizes[selectedSize],
-                  // Include size variant images if available
-                  images: product.sizes[selectedSize].images || undefined,
-                }
-              : undefined,
+          selectedVariant: selectedVariantData
+            ? {
+                color: selectedVariantData.color,
+                size: selectedVariantData.size,
+                sku: selectedVariantData.sku,
+                barcode: selectedVariantData.barcode,
+                price: selectedVariantData.price,
+                stock: selectedVariantData.stock,
+                images: selectedVariantData.images || undefined,
+              }
+            : undefined,
         },
         quantity: 1,
-        unitPrice: product.price,
+        unitPrice: selectedVariantData ? selectedVariantData.price : product.price,
         discount: 0, // No discount initially
-        lineTotal: product.price,
+        lineTotal: selectedVariantData ? selectedVariantData.price : product.price,
       }
 
       setCart([...cart, newItem])
@@ -526,12 +498,11 @@ const POSComponent: React.FC<Props> = ({
   }
 
   const handleAddToCartWithVariants = () => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedVariant !== null) {
       addToCart(selectedProduct)
       setShowVariantDialog(false)
       setSelectedProduct(null)
-      setSelectedColor(null)
-      setSelectedSize(null)
+      setSelectedVariant(null)
     }
   }
 
@@ -541,8 +512,8 @@ const POSComponent: React.FC<Props> = ({
     if (!item) return
 
     // Get stock information for the item (considering variants)
-    const stockAvailable = item.product.selectedSize
-      ? item.product.selectedSize.stockQuantity
+    const stockAvailable = item.product.selectedVariant
+      ? item.product.selectedVariant.stock
       : item.product.inStock
 
     console.log(
@@ -570,7 +541,10 @@ const POSComponent: React.FC<Props> = ({
     setCart(
       cart.map((cartItem) => {
         if (cartItem.id === itemId) {
-          const lineTotal = newQuantity * cartItem.unitPrice
+          const unitPrice = cartItem.product.selectedVariant
+            ? cartItem.product.selectedVariant.price
+            : cartItem.product.price
+          const lineTotal = newQuantity * unitPrice
           // Preserve the discount percentage when updating quantity
           const discountPercentage =
             cartItem.discount > 0 ? (cartItem.discount / cartItem.lineTotal) * 100 : 0
@@ -579,6 +553,7 @@ const POSComponent: React.FC<Props> = ({
           return {
             ...cartItem,
             quantity: newQuantity,
+            unitPrice: unitPrice,
             lineTotal,
             discount: newDiscount,
           }
@@ -638,50 +613,151 @@ const POSComponent: React.FC<Props> = ({
     try {
       // Update stock for each item in the cart
       const stockUpdatePromises = cart.map(async (item) => {
-        const newStock = item.product.inStock - item.quantity
-        console.log(
-          `Updating stock for ${item.product.title}: ${item.product.inStock} -> ${newStock}`,
-        )
+        // If this is a variant, we need to update the specific variant stock
+        if (item.product.selectedVariant) {
+          // Find the product in our products list to get the current variants
+          const productToUpdate = products.find((p: any) => p.id === item.product.id)
 
-        try {
-          // Update product stock in the database
-          await updateProductStock(item.product.id, newStock)
+          if (productToUpdate && productToUpdate.variants) {
+            // Find the specific variant to update
+            const variantIndex = productToUpdate.variants.findIndex(
+              (v: any) =>
+                v.color === item.product.selectedVariant?.color &&
+                v.size === item.product.selectedVariant?.size,
+            )
 
-          // If stock reaches zero, update product status
-          if (newStock === 0) {
-            console.log(`Product ${item.product.title} is now out of stock`)
-            try {
-              const response = await fetch(`/api/products/${item.product.id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  status: 'out-of-stock',
-                }),
-              })
+            if (variantIndex !== -1) {
+              const variant = productToUpdate.variants[variantIndex]
+              const newVariantStock = variant.stock - item.quantity
+              console.log(
+                `Updating variant stock for ${item.product.title} (${variant.color}/${variant.size}): ${variant.stock} -> ${newVariantStock}`,
+              )
 
-              if (!response.ok) {
-                const errorText = await response.text().catch(() => 'Unknown error')
+              // Update the variant stock in the product
+              const updatedVariants = [...productToUpdate.variants]
+              updatedVariants[variantIndex] = {
+                ...variant,
+                stock: newVariantStock,
+              }
+
+              try {
+                // Update product with new variant stock
+                const response = await fetch(`/api/products/${item.product.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    variants: updatedVariants,
+                  }),
+                })
+
+                if (!response.ok) {
+                  const errorText = await response.text().catch(() => 'Unknown error')
+                  console.error(
+                    'Failed to update product variant stock:',
+                    response.status,
+                    response.statusText,
+                    errorText,
+                  )
+                  throw new Error(`Failed to update variant stock: ${errorText}`)
+                }
+
+                // If variant stock reaches zero, check if we need to update product status
+                if (newVariantStock === 0) {
+                  // Check if all variants are out of stock
+                  const allVariantsOutOfStock = updatedVariants.every(
+                    (v: any) => v.stock === 0 || v.isActive === false,
+                  )
+
+                  if (allVariantsOutOfStock) {
+                    console.log(`Product ${item.product.title} is now out of stock`)
+                    try {
+                      const statusResponse = await fetch(`/api/products/${item.product.id}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          status: 'out-of-stock',
+                        }),
+                      })
+
+                      if (!statusResponse.ok) {
+                        const errorText = await statusResponse.text().catch(() => 'Unknown error')
+                        console.error(
+                          'Failed to update product status:',
+                          statusResponse.status,
+                          statusResponse.statusText,
+                          errorText,
+                        )
+                      }
+                    } catch (error) {
+                      console.error('Error updating product status:', error)
+                    }
+                  }
+                }
+              } catch (error) {
                 console.error(
-                  'Failed to update product status:',
-                  response.status,
-                  response.statusText,
-                  errorText,
+                  'Error updating variant stock for product:',
+                  item.product.title,
+                  error,
+                )
+                throw new Error(
+                  `Failed to update variant stock for ${item.product.title}: ${(error as Error).message}`,
                 )
               }
-            } catch (error) {
-              console.error('Error updating product status:', error)
+
+              return { productId: item.product.id, newStock: newVariantStock }
             }
           }
-        } catch (error) {
-          console.error('Error updating stock for product:', item.product.title, error)
-          throw new Error(
-            `Failed to update stock for ${item.product.title}: ${(error as Error).message}`,
+        } else {
+          // This is a non-variant product, update main stock
+          const newStock = item.product.inStock - item.quantity
+          console.log(
+            `Updating stock for ${item.product.title}: ${item.product.inStock} -> ${newStock}`,
           )
-        }
 
-        return { productId: item.product.id, newStock }
+          try {
+            // Update product stock in the database
+            await updateProductStock(item.product.id, newStock)
+
+            // If stock reaches zero, update product status
+            if (newStock === 0) {
+              console.log(`Product ${item.product.title} is now out of stock`)
+              try {
+                const response = await fetch(`/api/products/${item.product.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    status: 'out-of-stock',
+                  }),
+                })
+
+                if (!response.ok) {
+                  const errorText = await response.text().catch(() => 'Unknown error')
+                  console.error(
+                    'Failed to update product status:',
+                    response.status,
+                    response.statusText,
+                    errorText,
+                  )
+                }
+              } catch (error) {
+                console.error('Error updating product status:', error)
+              }
+            }
+          } catch (error) {
+            console.error('Error updating stock for product:', item.product.title, error)
+            throw new Error(
+              `Failed to update stock for ${item.product.title}: ${(error as Error).message}`,
+            )
+          }
+
+          return { productId: item.product.id, newStock }
+        }
       })
 
       // Wait for all stock updates to complete
@@ -711,9 +787,18 @@ const POSComponent: React.FC<Props> = ({
           quantity: item.quantity,
           price: item.unitPrice,
           selectedVariants: {
-            size: item.product.selectedSize?.sizeName || null,
-            color: item.product.selectedColor?.colorName || null,
+            size: item.product.selectedVariant?.size || null,
+            color: item.product.selectedVariant?.color || null,
           },
+          // Include variant-specific information
+          variant: item.product.selectedVariant
+            ? {
+                color: item.product.selectedVariant.color,
+                size: item.product.selectedVariant.size,
+                sku: item.product.selectedVariant.sku,
+                barcode: item.product.selectedVariant.barcode,
+              }
+            : null,
         })),
         subtotal: subtotal,
         tax: taxAmount,
@@ -1227,10 +1312,7 @@ const POSComponent: React.FC<Props> = ({
                     </div>
 
                     {/* Add to Cart button for products without variants */}
-                    {!(
-                      (product.colors && product.colors.length > 0) ||
-                      (product.sizes && product.sizes.length > 0)
-                    ) && (
+                    {!(product.variants && product.variants.length > 0) && (
                       <Button
                         size="sm"
                         className="w-full mt-2 text-xs"
@@ -1260,30 +1342,13 @@ const POSComponent: React.FC<Props> = ({
                   <div className="flex flex-col items-center gap-3">
                     {/* Display variant image with improved size and styling */}
                     <div className="w-40 h-40 relative rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                      {selectedColor !== null &&
-                      selectedProduct.colors &&
-                      selectedProduct.colors[selectedColor] &&
-                      (selectedProduct.colors[selectedColor].images?.[0] ||
-                        selectedProduct.colors[selectedColor].colorImage) ? (
+                      {selectedVariant !== null &&
+                      selectedProduct.variants &&
+                      selectedProduct.variants[selectedVariant] &&
+                      selectedProduct.variants[selectedVariant].images?.[0] ? (
                         <Image
-                          src={
-                            selectedProduct.colors[selectedColor].images?.[0]?.image?.url ||
-                            selectedProduct.colors[selectedColor].colorImage?.url
-                          }
-                          alt={
-                            selectedProduct.colors[selectedColor].images?.[0]?.image?.alt ||
-                            selectedProduct.colors[selectedColor].colorName
-                          }
-                          fill
-                          className="object-contain rounded"
-                        />
-                      ) : selectedSize !== null &&
-                        selectedProduct.sizes &&
-                        selectedProduct.sizes[selectedSize] &&
-                        selectedProduct.sizes[selectedSize].images?.[0] ? (
-                        <Image
-                          src={selectedProduct.sizes[selectedSize].images[0].image.url}
-                          alt={selectedProduct.sizes[selectedSize].images[0].image.alt}
+                          src={selectedProduct.variants[selectedVariant].images[0].image.url}
+                          alt={selectedProduct.variants[selectedVariant].images[0].image.alt}
                           fill
                           className="object-contain rounded"
                         />
@@ -1303,102 +1368,54 @@ const POSComponent: React.FC<Props> = ({
                     <div className="text-center">
                       <h3 className="font-medium text-lg">{selectedProduct.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {formatPrice(selectedProduct.price)}
+                        {selectedVariant !== null
+                          ? formatPrice(selectedProduct.variants[selectedVariant].price)
+                          : formatPrice(selectedProduct.price)}
                       </p>
                     </div>
                   </div>
 
-                  {/* Color Selection */}
-                  {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                  {/* Variant Selection */}
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                     <div>
-                      <Label>Color</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {selectedProduct.colors.map((color: any, index: number) => (
-                          <button
-                            key={index}
-                            className={cn(
-                              'w-8 h-8 rounded-full border-2 flex items-center justify-center',
-                              selectedColor === index
-                                ? 'border-primary ring-2 ring-primary/30'
-                                : 'border-gray-300',
-                            )}
-                            style={{ backgroundColor: color.colorCode }}
-                            onClick={() => setSelectedColor(index)}
-                            title={color.colorName}
-                          >
-                            {selectedColor === index && (
-                              <div className="w-3 h-3 rounded-full bg-white"></div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Size Selection */}
-                  {selectedProduct.sizes && selectedProduct.sizes.length > 0 && (
-                    <div>
-                      <Label>Size</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {selectedProduct.sizes.map((size: any, index: number) => (
-                          <button
-                            key={index}
-                            className={cn(
-                              'px-3 py-2 text-sm rounded border',
-                              selectedSize === index
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : size.inStock
-                                  ? 'border-gray-300 hover:border-gray-400'
-                                  : 'opacity-50 cursor-not-allowed',
-                              !size.inStock && 'line-through',
-                            )}
-                            onClick={() => size.inStock && setSelectedSize(index)}
-                            disabled={!size.inStock}
-                            title={size.sizeName}
-                          >
-                            {size.sizeName}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Stock Information */}
-                  {selectedProduct && (selectedColor !== null || selectedSize !== null) && (
-                    <div className="text-sm text-muted-foreground">
-                      {(() => {
-                        let stockInfo = ''
-                        let stockAvailable = selectedProduct.inStock
-
-                        if (
-                          selectedColor !== null &&
-                          selectedProduct.colors &&
-                          selectedProduct.colors[selectedColor]
-                        ) {
-                          stockInfo += `${selectedProduct.colors[selectedColor].colorName}`
-                        }
-
-                        if (
-                          selectedSize !== null &&
-                          selectedProduct.sizes &&
-                          selectedProduct.sizes[selectedSize]
-                        ) {
-                          const size = selectedProduct.sizes[selectedSize]
-                          stockInfo += stockInfo ? ` / ${size.sizeName}` : size.sizeName
-                          stockAvailable = size.stockQuantity
-                        }
-
-                        return (
-                          <p>
-                            {stockInfo && `${stockInfo} - `}
-                            <span
-                              className={stockAvailable > 0 ? 'text-green-600' : 'text-red-600'}
+                      <Label>Variants</Label>
+                      <div className="grid grid-cols-1 gap-2 mt-2 max-h-60 overflow-y-auto">
+                        {selectedProduct.variants
+                          .filter((variant: any) => variant.isActive !== false)
+                          .map((variant: any, index: number) => (
+                            <button
+                              key={index}
+                              className={cn(
+                                'p-3 text-left rounded border flex justify-between items-center',
+                                selectedVariant === index
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : variant.stock > 0
+                                    ? 'border-gray-300 hover:border-gray-400'
+                                    : 'opacity-50 cursor-not-allowed',
+                                variant.stock <= 0 && 'line-through',
+                              )}
+                              onClick={() => variant.stock > 0 && setSelectedVariant(index)}
+                              disabled={variant.stock <= 0}
                             >
-                              {stockAvailable > 0 ? `${stockAvailable} in stock` : 'Out of stock'}
-                            </span>
-                          </p>
-                        )
-                      })()}
+                              <div>
+                                <div className="font-medium">
+                                  {variant.color} / {variant.size}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  SKU: {variant.sku}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold">{formatPrice(variant.price)}</div>
+                                <div
+                                  className={variant.stock > 0 ? 'text-green-600' : 'text-red-600'}
+                                >
+                                  {variant.stock > 0 ? `${variant.stock} in stock` : 'Out of stock'}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
                     </div>
                   )}
 
@@ -1408,8 +1425,7 @@ const POSComponent: React.FC<Props> = ({
                       onClick={() => {
                         setShowVariantDialog(false)
                         setSelectedProduct(null)
-                        setSelectedColor(null)
-                        setSelectedSize(null)
+                        setSelectedVariant(null)
                       }}
                       className="flex-1"
                     >
@@ -1417,14 +1433,7 @@ const POSComponent: React.FC<Props> = ({
                     </Button>
                     <Button
                       onClick={handleAddToCartWithVariants}
-                      disabled={
-                        (selectedProduct.colors &&
-                          selectedProduct.colors.length > 0 &&
-                          selectedColor === null) ||
-                        (selectedProduct.sizes &&
-                          selectedProduct.sizes.length > 0 &&
-                          selectedSize === null)
-                      }
+                      disabled={selectedVariant === null}
                       className="flex-1"
                     >
                       Add to Cart
@@ -1521,7 +1530,11 @@ const POSComponent: React.FC<Props> = ({
                           placeholder="Customer name"
                           value={customer?.name || ''}
                           onChange={(e) =>
-                            setCustomer((prev) => ({ ...prev, name: e.target.value }))
+                            setCustomer((prev) =>
+                              prev
+                                ? { ...prev, name: e.target.value }
+                                : { name: e.target.value, phone: '', email: '' },
+                            )
                           }
                           required
                         />
@@ -1533,7 +1546,11 @@ const POSComponent: React.FC<Props> = ({
                           placeholder="Phone number"
                           value={customer?.phone || ''}
                           onChange={(e) =>
-                            setCustomer((prev) => ({ ...prev, phone: e.target.value }))
+                            setCustomer((prev) =>
+                              prev
+                                ? { ...prev, phone: e.target.value }
+                                : { name: '', phone: e.target.value, email: '' },
+                            )
                           }
                         />
                       </div>
@@ -1545,7 +1562,11 @@ const POSComponent: React.FC<Props> = ({
                           placeholder="Email address"
                           value={customer?.email || ''}
                           onChange={(e) =>
-                            setCustomer((prev) => ({ ...prev, email: e.target.value }))
+                            setCustomer((prev) =>
+                              prev
+                                ? { ...prev, email: e.target.value }
+                                : { name: '', phone: '', email: e.target.value },
+                            )
                           }
                         />
                       </div>
@@ -1579,17 +1600,10 @@ const POSComponent: React.FC<Props> = ({
                       <div className="flex items-start gap-3">
                         <div className="w-12 h-12 relative rounded overflow-hidden">
                           {/* Show variant image if available, otherwise default image */}
-                          {item.product.selectedColor?.images?.[0] ? (
+                          {item.product.selectedVariant?.images?.[0] ? (
                             <Image
-                              src={item.product.selectedColor.images[0].image.url}
-                              alt={item.product.selectedColor.images[0].image.alt}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : item.product.selectedSize?.images?.[0] ? (
-                            <Image
-                              src={item.product.selectedSize.images[0].image.url}
-                              alt={item.product.selectedSize.images[0].image.alt}
+                              src={item.product.selectedVariant.images[0].image.url}
+                              alt={item.product.selectedVariant.images[0].image.alt}
                               fill
                               className="object-cover"
                             />
@@ -1607,17 +1621,11 @@ const POSComponent: React.FC<Props> = ({
                         <div className="flex-1">
                           <h4 className="font-medium text-sm line-clamp-2">{item.product.title}</h4>
                           {/* Show selected variant information */}
-                          {(item.product.selectedColor || item.product.selectedSize) && (
+                          {item.product.selectedVariant && (
                             <div className="text-xs text-muted-foreground mt-1">
-                              {item.product.selectedColor && (
-                                <span>{item.product.selectedColor.colorName}</span>
-                              )}
-                              {item.product.selectedColor && item.product.selectedSize && (
-                                <span> / </span>
-                              )}
-                              {item.product.selectedSize && (
-                                <span>{item.product.selectedSize.sizeName}</span>
-                              )}
+                              <span>{item.product.selectedVariant.color}</span>
+                              <span> / </span>
+                              <span>{item.product.selectedVariant.size}</span>
                             </div>
                           )}
                           <p className="text-xs text-muted-foreground">
@@ -1664,7 +1672,10 @@ const POSComponent: React.FC<Props> = ({
                           size="sm"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           className="h-8 w-8 p-0"
-                          disabled={item.quantity >= item.product.inStock}
+                          disabled={
+                            item.quantity >=
+                            (item.product.selectedVariant?.stock || item.product.inStock)
+                          }
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
