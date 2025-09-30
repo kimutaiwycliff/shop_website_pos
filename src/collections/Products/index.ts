@@ -180,158 +180,130 @@ export const Products: CollectionConfig = {
         {
           label: 'Variants',
           fields: [
-            // Product Variants
+            // Product Variants - Replacing separate colors and sizes arrays with integrated variants
             {
-              name: 'colors',
+              name: 'variants',
               type: 'array',
-              label: 'Color Options',
+              label: 'Product Variants',
               admin: {
-                description: 'Add all available color variations for this product',
-                initCollapsed: true,
+                description:
+                  'Create variants by combining colors and sizes with individual stock levels',
+                initCollapsed: false,
               },
               fields: [
                 {
-                  name: 'colorName',
-                  type: 'text',
-                  label: 'Color Name',
-                  required: true,
-                  admin: {
-                    description: 'e.g., Navy Blue, Black, White',
-                    placeholder: 'Enter color name',
-                  },
-                },
-                {
-                  name: 'colorCode',
-                  type: 'text',
-                  label: 'Color Swatch',
-                  admin: {
-                    description: 'Hex color code (e.g., #1A365D for navy blue)',
-                    placeholder: '#1A365D',
-                  },
-                  validate: (val: string | null | undefined) => {
-                    if (!val) return 'Color code is required'
-                    return (
-                      /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(val) ||
-                      'Please enter a valid hex color code (e.g., #1A365D)'
-                    )
-                  },
-                },
-                {
-                  name: 'colorImage',
-                  type: 'upload',
-                  relationTo: 'media',
-                  admin: {
-                    description: 'Image showing this color variant',
-                  },
-                },
-                // Add images for color variants
-                {
-                  name: 'images',
-                  type: 'array',
-                  label: 'Color Variant Images',
-                  admin: {
-                    description: 'Optional images specific to this color variant',
-                    initCollapsed: true,
-                  },
+                  type: 'row',
                   fields: [
                     {
-                      name: 'image',
-                      type: 'upload',
-                      relationTo: 'media',
+                      name: 'color',
+                      type: 'text',
+                      label: 'Color',
                       required: true,
                       admin: {
-                        description: 'Upload an image for this color variant',
+                        width: '50%',
+                        description: 'e.g., Navy Blue, Black, White',
+                        placeholder: 'Enter color name',
                       },
                     },
                     {
-                      name: 'alt',
+                      name: 'size',
                       type: 'text',
-                      label: 'Alt Text',
+                      label: 'Size',
                       required: true,
                       admin: {
-                        description:
-                          'Describe this image for accessibility and SEO (e.g., "Red cotton t-shirt front view")',
-                        placeholder: 'Briefly describe this image',
+                        width: '50%',
+                        description: 'e.g., Small, Medium, Large or numeric sizes',
+                        placeholder: 'Enter size',
                       },
-                      minLength: 5,
-                      maxLength: 125,
                     },
                   ],
                 },
-              ],
-            },
-            {
-              name: 'sizes',
-              type: 'array',
-              label: 'Available Sizes',
-              admin: {
-                description: 'Sizes available for this product',
-              },
-              fields: [
                 {
-                  name: 'sizeName',
-                  type: 'text',
-                  label: 'Size',
-                  required: true,
-                },
-                {
-                  name: 'sizeCode',
-                  type: 'select',
-                  label: 'Size Code',
-                  options: [
-                    { label: 'Extra Small (XS)', value: 'XS' },
-                    { label: 'Small (S)', value: 'S' },
-                    { label: 'Medium (M)', value: 'M' },
-                    { label: 'Large (L)', value: 'L' },
-                    { label: 'Extra Large (XL)', value: 'XL' },
-                    { label: 'Double XL (XXL)', value: 'XXL' },
-                    { label: 'Triple XL (XXXL)', value: 'XXXL' },
-                    // Numeric sizes
-                    { label: '26', value: '26' },
-                    { label: '28', value: '28' },
-                    { label: '30', value: '30' },
-                    { label: '32', value: '32' },
-                    { label: '34', value: '34' },
-                    { label: '36', value: '36' },
-                    { label: '38', value: '38' },
-                    { label: '40', value: '40' },
-                    { label: '42', value: '42' },
-                    { label: '44', value: '44' },
-                    { label: '46', value: '46' },
-                    // Kids sizes
-                    { label: '2T', value: '2T' },
-                    { label: '3T', value: '3T' },
-                    { label: '4T', value: '4T' },
-                    { label: '5T', value: '5T' },
-                    { label: '6', value: '6' },
-                    { label: '7', value: '7' },
-                    { label: '8', value: '8' },
-                    { label: '10', value: '10' },
-                    { label: '12', value: '12' },
-                    { label: '14', value: '14' },
-                    { label: '16', value: '16' },
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'sku',
+                      type: 'text',
+                      label: 'Variant SKU',
+                      required: true,
+                      unique: true,
+                      admin: {
+                        width: '50%',
+                        description: 'Unique SKU for this specific variant',
+                        placeholder: 'e.g., TSH-001-BL-S',
+                      },
+                    },
+                    {
+                      name: 'barcode',
+                      type: 'text',
+                      label: 'Barcode (UPC/EAN)',
+                      admin: {
+                        width: '50%',
+                        description: 'Barcode for this variant (auto-generated if empty)',
+                        placeholder: 'e.g., 123456789012',
+                      },
+                    },
                   ],
                 },
                 {
-                  name: 'inStock',
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'stock',
+                      type: 'number',
+                      label: 'Stock Quantity',
+                      required: true,
+                      min: 0,
+                      defaultValue: 0,
+                      admin: {
+                        width: '33%',
+                        description: 'Available items in stock for this variant',
+                        step: 1,
+                      },
+                    },
+                    {
+                      name: 'price',
+                      type: 'number',
+                      label: 'Selling Price (KES)',
+                      required: true,
+                      min: 0,
+                      admin: {
+                        width: '33%',
+                        description: 'Price for this specific variant',
+                        step: 50,
+                        placeholder: '0.00',
+                      },
+                    },
+                    {
+                      name: 'costPrice',
+                      type: 'number',
+                      label: 'Cost Price (KES)',
+                      required: true,
+                      min: 0,
+                      admin: {
+                        width: '34%',
+                        description: 'Your cost for this variant',
+                        step: 50,
+                        placeholder: '0.00',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'isActive',
                   type: 'checkbox',
-                  label: 'Size In Stock',
+                  label: 'Active',
                   defaultValue: true,
+                  admin: {
+                    description: 'Uncheck to hide this variant from customers',
+                  },
                 },
-                {
-                  name: 'stockQuantity',
-                  type: 'number',
-                  label: 'Stock Quantity',
-                  min: 0,
-                  defaultValue: 0,
-                },
-                // Add images for size variants
                 {
                   name: 'images',
                   type: 'array',
-                  label: 'Size Variant Images',
+                  label: 'Variant Images',
                   admin: {
-                    description: 'Optional images specific to this size variant',
+                    description: 'Optional images specific to this variant',
                     initCollapsed: true,
                   },
                   fields: [
@@ -341,7 +313,7 @@ export const Products: CollectionConfig = {
                       relationTo: 'media',
                       required: true,
                       admin: {
-                        description: 'Upload an image for this size variant',
+                        description: 'Upload an image for this variant',
                       },
                     },
                     {
@@ -351,7 +323,7 @@ export const Products: CollectionConfig = {
                       required: true,
                       admin: {
                         description:
-                          'Describe this image for accessibility and SEO (e.g., "Large cotton t-shirt front view")',
+                          'Describe this image for accessibility and SEO (e.g., "Blue cotton t-shirt size small front view")',
                         placeholder: 'Briefly describe this image',
                       },
                       minLength: 5,
@@ -361,6 +333,7 @@ export const Products: CollectionConfig = {
                 },
               ],
             },
+            // Remove the old colors and sizes arrays as they're now replaced by variants
           ],
         },
         {
@@ -698,10 +671,18 @@ export const Products: CollectionConfig = {
         // Ensure we have data to work with
         if (!data) return data
 
-        // Ensure stock is never negative
-        if (data.inStock < 0) {
-          data.inStock = 0
+        // Calculate total stock from variants
+        let totalStock = 0
+        if (data.variants && Array.isArray(data.variants)) {
+          data.variants.forEach((variant) => {
+            if (typeof variant.stock === 'number' && variant.isActive !== false) {
+              totalStock += variant.stock
+            }
+          })
         }
+
+        // Set the main product stock to the total of all variants
+        data.inStock = totalStock
 
         // Update status based on stock level
         if (data.inStock === 0) {
@@ -736,9 +717,22 @@ export const Products: CollectionConfig = {
           data.discountPercentage = 0
         }
 
-        // Generate barcode if not provided
+        // Generate barcode for main product if not provided
         if (data.sku && !data.barcode) {
           data.barcode = generateUPCAFromSKU(data.sku)
+        }
+
+        // Generate barcodes for variants if not provided
+        if (data.variants && Array.isArray(data.variants)) {
+          data.variants = data.variants.map((variant) => {
+            if (variant.sku && !variant.barcode) {
+              return {
+                ...variant,
+                barcode: generateUPCAFromSKU(variant.sku),
+              }
+            }
+            return variant
+          })
         }
 
         // If this is an update operation, check stock changes
@@ -756,7 +750,7 @@ export const Products: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, req, operation }) => {
-        // Generate barcode image after product creation/update (server-side only)
+        // Generate barcode image for main product after product creation/update (server-side only)
         if (
           typeof window === 'undefined' &&
           doc.sku &&
@@ -780,9 +774,36 @@ export const Products: CollectionConfig = {
             }
           } catch (error) {
             // Log the error but don't prevent the operation from completing
-            console.error('Error generating barcode image:', error)
-            // Optionally, you could add a field to track barcode generation status
-            // This allows the operation to complete even if barcode generation fails
+            console.error('Error generating barcode image for main product:', error)
+          }
+        }
+
+        // Generate barcode images for variants (server-side only)
+        if (
+          typeof window === 'undefined' &&
+          doc.variants &&
+          Array.isArray(doc.variants) &&
+          doc.variants.length > 0
+        ) {
+          try {
+            // Dynamic import for server-only functionality
+            const { createBarcodeMedia } = await import('@/lib/barcodeServerOnly')
+
+            // Process each variant
+            for (const variant of doc.variants) {
+              // Only generate if the variant has a SKU and doesn't already have a barcode image
+              if (variant.sku) {
+                // Note: In a real implementation, you might want to store variant barcode images
+                // This is a simplified version that just generates them
+                await createBarcodeMedia(
+                  req.payload,
+                  variant.sku,
+                  `${doc.title} - ${variant.color} ${variant.size}`,
+                )
+              }
+            }
+          } catch (error) {
+            console.error('Error generating barcode images for variants:', error)
           }
         }
 

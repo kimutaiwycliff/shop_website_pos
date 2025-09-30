@@ -962,93 +962,53 @@ export interface Product {
     id?: string | null;
   }[];
   /**
-   * Add all available color variations for this product
+   * Create variants by combining colors and sizes with individual stock levels
    */
-  colors?:
+  variants?:
     | {
         /**
          * e.g., Navy Blue, Black, White
          */
-        colorName: string;
+        color: string;
         /**
-         * Hex color code (e.g., #1A365D for navy blue)
+         * e.g., Small, Medium, Large or numeric sizes
          */
-        colorCode?: string | null;
+        size: string;
         /**
-         * Image showing this color variant
+         * Unique SKU for this specific variant
          */
-        colorImage?: (number | null) | Media;
+        sku: string;
         /**
-         * Optional images specific to this color variant
+         * Barcode for this variant (auto-generated if empty)
          */
-        images?:
-          | {
-              /**
-               * Upload an image for this color variant
-               */
-              image: number | Media;
-              /**
-               * Describe this image for accessibility and SEO (e.g., "Red cotton t-shirt front view")
-               */
-              alt: string;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Sizes available for this product
-   */
-  sizes?:
-    | {
-        sizeName: string;
-        sizeCode?:
-          | (
-              | 'XS'
-              | 'S'
-              | 'M'
-              | 'L'
-              | 'XL'
-              | 'XXL'
-              | 'XXXL'
-              | '26'
-              | '28'
-              | '30'
-              | '32'
-              | '34'
-              | '36'
-              | '38'
-              | '40'
-              | '42'
-              | '44'
-              | '46'
-              | '2T'
-              | '3T'
-              | '4T'
-              | '5T'
-              | '6'
-              | '7'
-              | '8'
-              | '10'
-              | '12'
-              | '14'
-              | '16'
-            )
-          | null;
-        inStock?: boolean | null;
-        stockQuantity?: number | null;
+        barcode?: string | null;
         /**
-         * Optional images specific to this size variant
+         * Available items in stock for this variant
+         */
+        stock: number;
+        /**
+         * Price for this specific variant
+         */
+        price: number;
+        /**
+         * Your cost for this variant
+         */
+        costPrice: number;
+        /**
+         * Uncheck to hide this variant from customers
+         */
+        isActive?: boolean | null;
+        /**
+         * Optional images specific to this variant
          */
         images?:
           | {
               /**
-               * Upload an image for this size variant
+               * Upload an image for this variant
                */
               image: number | Media;
               /**
-               * Describe this image for accessibility and SEO (e.g., "Large cotton t-shirt front view")
+               * Describe this image for accessibility and SEO (e.g., "Blue cotton t-shirt size small front view")
                */
               alt: string;
               id?: string | null;
@@ -2811,28 +2771,17 @@ export interface ProductsSelect<T extends boolean = true> {
         isPrimary?: T;
         id?: T;
       };
-  colors?:
+  variants?:
     | T
     | {
-        colorName?: T;
-        colorCode?: T;
-        colorImage?: T;
-        images?:
-          | T
-          | {
-              image?: T;
-              alt?: T;
-              id?: T;
-            };
-        id?: T;
-      };
-  sizes?:
-    | T
-    | {
-        sizeName?: T;
-        sizeCode?: T;
-        inStock?: T;
-        stockQuantity?: T;
+        color?: T;
+        size?: T;
+        sku?: T;
+        barcode?: T;
+        stock?: T;
+        price?: T;
+        costPrice?: T;
+        isActive?: T;
         images?:
           | T
           | {
