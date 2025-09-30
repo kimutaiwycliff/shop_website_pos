@@ -157,7 +157,9 @@ const POSComponent: React.FC<Props> = ({
   const [customTaxIncluded, setCustomTaxIncluded] = useState<boolean | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [selectedVariant, setSelectedVariant] = useState<number | null>(null)
+  const [selectedVariantsMultiple, setSelectedVariantsMultiple] = useState<number[]>([])
   const [showVariantDialog, setShowVariantDialog] = useState(false)
+  const [variantSearchQuery, setVariantSearchQuery] = useState('')
   const [selectedVariants, setSelectedVariants] = useState<
     Record<string, { colorIndex?: number; sizeIndex?: number }>
   >({})
@@ -421,51 +423,43 @@ const POSComponent: React.FC<Props> = ({
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const addToCart = (product: any) => {
-    console.log('Adding product to cart:', product.title, 'Stock available:', product.inStock)
-
+  const addToCart = (product: any, variantIndex: number | null = null) => {
     // Check if product/variant is in stock
     let stockAvailable = product.inStock
     let variantInfo = ''
     let selectedVariantData = null
 
     // If we have selected variant, use its stock info
-    if (selectedProduct && selectedVariant) {
-      const variant = selectedProduct.variants[selectedVariant]
+    const actualVariantIndex = variantIndex !== null ? variantIndex : selectedVariant
+
+    if (product && actualVariantIndex !== null && product.variants) {
+      const variant = product.variants[actualVariantIndex]
       variantInfo = ` ${variant.color} ${variant.size}`
       stockAvailable = variant.stock
       selectedVariantData = variant
     }
 
     if (stockAvailable <= 0) {
-      console.log('Product/variant is out of stock:', product.title + variantInfo)
       toast.error(`This product/variant is out of stock and cannot be added to the cart.`)
       return
     }
 
     // Create a unique ID for the cart item that includes variant information
     const cartItemId =
-      selectedProduct && selectedVariant !== null ? `${product.id}-${selectedVariant}` : product.id
+      product && actualVariantIndex !== null ? `${product.id}-${actualVariantIndex}` : product.id
 
     const existingItem = cart.find((item) => item.id === cartItemId)
 
     if (existingItem) {
       // Check if adding another would exceed stock
       if (existingItem.quantity >= stockAvailable) {
-        console.log(
-          'Cannot add more of this product/variant. Stock limit reached for:',
-          product.title + variantInfo,
-        )
         toast.error(
           `Cannot add more of this product/variant. Only ${stockAvailable} items in stock.`,
         )
         return
       }
-      console.log('Updating quantity for existing item:', product.title + variantInfo)
       updateQuantity(cartItemId, existingItem.quantity + 1)
     } else {
-      console.log('Adding new item to cart:', product.title + variantInfo)
-
       // Create the cart item with variant information
       const newItem: POSItem = {
         id: cartItemId,
@@ -498,8 +492,23 @@ const POSComponent: React.FC<Props> = ({
   }
 
   const handleAddToCartWithVariants = () => {
-    if (selectedProduct && selectedVariant !== null) {
-      addToCart(selectedProduct)
+    if (selectedProduct) {
+      const productToAdd = selectedProduct // Capture the product reference
+
+      // Handle multiple variant selections
+      if (selectedVariantsMultiple.length > 0) {
+        selectedVariantsMultiple.forEach((variantIndex) => {
+          addToCart(productToAdd, variantIndex)
+        })
+        // Clear multiple selection after adding
+        setSelectedVariantsMultiple([])
+      }
+      // Handle single variant selection
+      else if (selectedVariant !== null) {
+        addToCart(productToAdd, selectedVariant)
+      }
+
+      // Close dialog and reset selections
       setShowVariantDialog(false)
       setSelectedProduct(null)
       setSelectedVariant(null)
@@ -1375,26 +1384,115 @@ const POSComponent: React.FC<Props> = ({
                     </div>
                   </div>
 
+                  {/* Variant Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search variants..."
+                      value={variantSearchQuery}
+                      onChange={(e) => setVariantSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
                   {/* Variant Selection */}
                   {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                     <div>
-                      <Label>Variants</Label>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>Variants</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Select all available variants
+                            const allAvailableVariants = selectedProduct.variants
+                              .map((_: any, index: number) => index)
+                              .filter(
+                                (index: number) =>
+                                  selectedProduct.variants[index].stock > 0 &&
+                                  selectedProduct.variants[index].isActive !== false,
+                              )
+
+                            // If all are already selected, clear selection
+                            if (
+                              selectedVariantsMultiple.length === allAvailableVariants.length &&
+                              allAvailableVariants.length > 0
+                            ) {
+                              setSelectedVariantsMultiple([])
+                            } else {
+                              setSelectedVariantsMultiple(allAvailableVariants)
+                            }
+                          }}
+                        >
+                          {selectedVariantsMultiple.length ===
+                            selectedProduct.variants.filter(
+                              (v: any) => v.stock > 0 && v.isActive !== false,
+                            ).length &&
+                          selectedProduct.variants.filter(
+                            (v: any) => v.stock > 0 && v.isActive !== false,
+                          ).length > 0
+                            ? 'Clear All'
+                            : 'Select All'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Tip: Hold Ctrl (Cmd on Mac) and click to select multiple variants
+                      </p>
                       <div className="grid grid-cols-1 gap-2 mt-2 max-h-60 overflow-y-auto">
                         {selectedProduct.variants
                           .filter((variant: any) => variant.isActive !== false)
+                          .filter((variant: any) => {
+                            if (!variantSearchQuery) return true
+                            const searchLower = variantSearchQuery.toLowerCase()
+                            return (
+                              variant.color.toLowerCase().includes(searchLower) ||
+                              variant.size.toLowerCase().includes(searchLower) ||
+                              variant.sku.toLowerCase().includes(searchLower)
+                            )
+                          })
                           .map((variant: any, index: number) => (
                             <button
                               key={index}
                               className={cn(
                                 'p-3 text-left rounded border flex justify-between items-center',
-                                selectedVariant === index
+                                selectedVariantsMultiple.includes(index) ||
+                                  selectedVariant === index
                                   ? 'bg-primary text-primary-foreground border-primary'
                                   : variant.stock > 0
                                     ? 'border-gray-300 hover:border-gray-400'
                                     : 'opacity-50 cursor-not-allowed',
                                 variant.stock <= 0 && 'line-through',
                               )}
-                              onClick={() => variant.stock > 0 && setSelectedVariant(index)}
+                              onClick={(e) => {
+                                if (variant.stock > 0) {
+                                  // Check if Ctrl (or Cmd on Mac) key is pressed for multi-selection
+                                  if (e.ctrlKey || e.metaKey) {
+                                    // Multi-selection mode
+                                    if (selectedVariantsMultiple.includes(index)) {
+                                      setSelectedVariantsMultiple(
+                                        selectedVariantsMultiple.filter((i) => i !== index),
+                                      )
+                                    } else {
+                                      setSelectedVariantsMultiple([
+                                        ...selectedVariantsMultiple,
+                                        index,
+                                      ])
+                                    }
+                                    // Clear single selection when using multi-selection
+                                    if (selectedVariant !== null) {
+                                      setSelectedVariant(null)
+                                    }
+                                  } else {
+                                    // Single selection mode - clear multi-selection and select this item
+                                    setSelectedVariantsMultiple([])
+                                    if (selectedVariant === index) {
+                                      setSelectedVariant(null)
+                                    } else {
+                                      setSelectedVariant(index)
+                                    }
+                                  }
+                                }
+                              }}
                               disabled={variant.stock <= 0}
                             >
                               <div>
@@ -1426,6 +1524,7 @@ const POSComponent: React.FC<Props> = ({
                         setShowVariantDialog(false)
                         setSelectedProduct(null)
                         setSelectedVariant(null)
+                        setSelectedVariantsMultiple([])
                       }}
                       className="flex-1"
                     >
@@ -1433,10 +1532,14 @@ const POSComponent: React.FC<Props> = ({
                     </Button>
                     <Button
                       onClick={handleAddToCartWithVariants}
-                      disabled={selectedVariant === null}
+                      disabled={selectedVariant === null && selectedVariantsMultiple.length === 0}
                       className="flex-1"
                     >
-                      Add to Cart
+                      Add to Cart (
+                      {selectedVariantsMultiple.length || (selectedVariant !== null ? 1 : 0)})
+                      {selectedVariantsMultiple.length > 0 && (
+                        <span className="text-xs ml-1">(Ctrl+Click for multi-select)</span>
+                      )}
                     </Button>
                   </div>
                 </div>
