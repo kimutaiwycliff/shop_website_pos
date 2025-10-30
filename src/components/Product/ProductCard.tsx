@@ -24,8 +24,8 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const [selectedColor, setSelectedColor] = useState<number | null>(null)
   const [selectedSize, setSelectedSize] = useState<number | null>(null)
 
-  const hasColors = product.colors && product.colors.length > 0
-  const hasSizes = product.sizes && product.sizes.length > 0
+  const hasColors = product.variants && product.variants.some((variant) => variant.color)
+  const hasSizes = product.variants && product.variants.some((variant) => variant.size)
 
   const handleAddToCart = () => {
     if (hasColors || hasSizes) {
@@ -59,28 +59,34 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           }
         | undefined = undefined
 
-      if (selectedColor !== null && product.colors && product.colors.length > selectedColor) {
-        const color = product.colors[selectedColor]
+      // Get unique colors and sizes from variants
+      const uniqueColors = product.variants
+        ? Array.from(new Set(product.variants.map((v) => v.color))).filter(Boolean)
+        : []
+      const uniqueSizes = product.variants
+        ? Array.from(new Set(product.variants.map((v) => v.size))).filter(Boolean)
+        : []
+
+      if (selectedColor !== null && uniqueColors.length > selectedColor) {
+        const colorName = uniqueColors[selectedColor]
+        // Find the first variant with this color to get color details
+        const colorVariant = product.variants?.find((v) => v.color === colorName)
         selectedColorData = {
-          colorName: color.colorName || '',
-          colorCode: color.colorCode || '#000000',
-          colorImage:
-            color.colorImage && typeof color.colorImage === 'object'
-              ? {
-                  url: (color.colorImage as any).url || '',
-                  alt: (color.colorImage as any).alt || '',
-                }
-              : undefined,
+          colorName: colorName || '',
+          colorCode: '#000000', // Default color code
+          colorImage: undefined, // No color image in current structure
         }
       }
 
-      if (selectedSize !== null && product.sizes && product.sizes.length > selectedSize) {
-        const size = product.sizes[selectedSize]
+      if (selectedSize !== null && uniqueSizes.length > selectedSize) {
+        const sizeName = uniqueSizes[selectedSize]
+        // Find the first variant with this size to get size details
+        const sizeVariant = product.variants?.find((v) => v.size === sizeName)
         selectedSizeData = {
-          sizeName: size.sizeName || '',
-          sizeCode: size.sizeCode || '',
-          inStock: (size.inStock ?? false) === true,
-          stockQuantity: size.stockQuantity || 0,
+          sizeName: sizeName || '',
+          sizeCode: sizeName || '',
+          inStock: (sizeVariant?.stock || 0) > 0,
+          stockQuantity: sizeVariant?.stock || 0,
         }
       }
 
@@ -208,53 +214,65 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               </div>
 
               {/* Color Selection */}
-              {hasColors && product.colors && (
+              {hasColors && product.variants && (
                 <div>
                   <label className="text-sm font-medium">Color</label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {product.colors.map((color: any, index: number) => (
-                      <button
-                        key={index}
-                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                          selectedColor === index
-                            ? 'border-primary ring-2 ring-primary/30'
-                            : 'border-gray-300'
-                        }`}
-                        style={{ backgroundColor: color.colorCode || '#ccc' }}
-                        onClick={() => setSelectedColor(index)}
-                        title={color.colorName}
-                      >
-                        {selectedColor === index && (
-                          <div className="w-3 h-3 rounded-full bg-white"></div>
-                        )}
-                      </button>
-                    ))}
+                    {/* Get unique colors from variants */}
+                    {Array.from(new Set(product.variants.map((v) => v.color)))
+                      .filter(Boolean)
+                      .map((colorName: string, index: number) => (
+                        <button
+                          key={index}
+                          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                            selectedColor === index
+                              ? 'border-primary ring-2 ring-primary/30'
+                              : 'border-gray-300'
+                          }`}
+                          style={{ backgroundColor: '#ccc' }}
+                          onClick={() => setSelectedColor(index)}
+                          title={colorName}
+                        >
+                          {selectedColor === index && (
+                            <div className="w-3 h-3 rounded-full bg-white"></div>
+                          )}
+                        </button>
+                      ))}
                   </div>
                 </div>
               )}
 
               {/* Size Selection */}
-              {hasSizes && product.sizes && (
+              {hasSizes && product.variants && (
                 <div>
                   <label className="text-sm font-medium">Size</label>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {product.sizes.map((size: any, index: number) => (
-                      <button
-                        key={index}
-                        className={`px-3 py-2 text-sm rounded border ${
-                          selectedSize === index
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : (size.inStock ?? false) === true
-                              ? 'border-gray-300 hover:border-gray-400'
-                              : 'opacity-50 cursor-not-allowed'
-                        } ${!((size.inStock ?? false) === true) ? 'line-through' : ''}`}
-                        onClick={() => (size.inStock ?? false) === true && setSelectedSize(index)}
-                        disabled={!((size.inStock ?? false) === true)}
-                        title={size.sizeName}
-                      >
-                        {size.sizeName}
-                      </button>
-                    ))}
+                    {/* Get unique sizes from variants */}
+                    {Array.from(new Set(product.variants.map((v) => v.size)))
+                      .filter(Boolean)
+                      .map((sizeName: string, index: number) => {
+                        // Find the first variant with this size to check stock
+                        const sizeVariant = product.variants?.find((v) => v.size === sizeName)
+                        const inStock = (sizeVariant?.stock || 0) > 0
+
+                        return (
+                          <button
+                            key={index}
+                            className={`px-3 py-2 text-sm rounded border ${
+                              selectedSize === index
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : inStock
+                                  ? 'border-gray-300 hover:border-gray-400'
+                                  : 'opacity-50 cursor-not-allowed'
+                            } ${!inStock ? 'line-through' : ''}`}
+                            onClick={() => inStock && setSelectedSize(index)}
+                            disabled={!inStock}
+                            title={sizeName}
+                          >
+                            {sizeName}
+                          </button>
+                        )
+                      })}
                   </div>
                 </div>
               )}
@@ -266,22 +284,24 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                     let stockInfo = ''
                     let stockAvailable = product.inStock || 0
 
-                    if (
-                      selectedColor !== null &&
-                      product.colors &&
-                      product.colors.length > selectedColor
-                    ) {
-                      stockInfo += `${product.colors[selectedColor].colorName}`
+                    // Get unique colors and sizes from variants
+                    const uniqueColors = product.variants
+                      ? Array.from(new Set(product.variants.map((v) => v.color))).filter(Boolean)
+                      : []
+                    const uniqueSizes = product.variants
+                      ? Array.from(new Set(product.variants.map((v) => v.size))).filter(Boolean)
+                      : []
+
+                    if (selectedColor !== null && uniqueColors.length > selectedColor) {
+                      stockInfo += `${uniqueColors[selectedColor]}`
                     }
 
-                    if (
-                      selectedSize !== null &&
-                      product.sizes &&
-                      product.sizes.length > selectedSize
-                    ) {
-                      const size = product.sizes[selectedSize]
-                      stockInfo += stockInfo ? ` / ${size.sizeName}` : size.sizeName
-                      stockAvailable = size.stockQuantity || 0
+                    if (selectedSize !== null && uniqueSizes.length > selectedSize) {
+                      const sizeName = uniqueSizes[selectedSize]
+                      stockInfo += stockInfo ? ` / ${sizeName}` : sizeName
+                      // Find the first variant with this size to get stock info
+                      const sizeVariant = product.variants?.find((v) => v.size === sizeName)
+                      stockAvailable = sizeVariant?.stock || 0
                     }
 
                     return (
