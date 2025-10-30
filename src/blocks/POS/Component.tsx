@@ -1159,7 +1159,7 @@ const POSComponent: React.FC<Props> = ({
   const maxDiscountAmount = selectedItem ? (selectedItem.lineTotal * maxDiscountPercent) / 100 : 0
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="container min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b px-4 py-3">
         <div className="flex items-center justify-between">
