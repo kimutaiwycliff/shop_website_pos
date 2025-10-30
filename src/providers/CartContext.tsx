@@ -32,8 +32,8 @@ interface CartContextType {
     selectedColor?: CartItem['selectedColor'],
     selectedSize?: CartItem['selectedSize'],
   ) => void
-  removeFromCart: (productId: number) => void
-  updateQuantity: (productId: number, quantity: number) => void
+  removeFromCart: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
   getCartTotal: () => number
   getCartCount: () => number
@@ -116,7 +116,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = (productId: string) => {
     const itemToRemove = cartItems.find((item) => item.product.id === productId)
     setCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId))
     if (itemToRemove) {
@@ -124,7 +124,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(productId)
       return

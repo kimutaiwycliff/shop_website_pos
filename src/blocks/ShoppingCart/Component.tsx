@@ -88,15 +88,15 @@ const ShoppingCartComponent: React.FC<Props> = ({
     }).format(price)
   }
 
-  const handleUpdateQuantity = (productId: number, newQuantity: number) => {
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
     updateQuantity(productId, newQuantity)
   }
 
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItem = (productId: string) => {
     removeFromCart(productId)
   }
 
-  const handleSaveForLater = (productId: number) => {
+  const handleSaveForLater = (productId: string) => {
     // In a real app, this would move the item to a wishlist
     console.log('Save for later:', productId)
     removeFromCart(productId)
